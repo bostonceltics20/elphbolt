@@ -50,6 +50,11 @@ source-dir="app"
 main="superconda.f90"
 
 [[executable]]
+name="test_V_perm_symm"
+source-dir="app"
+main="test_V_perm_symm.f90"
+
+[[executable]]
 name = "screening_comparison"
 source-dir="src"
 main = "screening_comparison.f90"
@@ -79,7 +84,7 @@ main = "screening_comparison.f90"
 #source-dir="test"
 #main = "check_interactions_symmetries.f90"
 #
-#[[test]]
-#name = "bte_regression"
-#source-dir="test"
-#main = "bte_regression.f90"
+[[test]]
+name = "bte_regression"
+source-dir="test"
+main = "bte_regression.f90"

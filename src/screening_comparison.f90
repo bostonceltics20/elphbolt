@@ -17,7 +17,10 @@ program screening_comparison
   real(r64), allocatable :: el_ens_parabolic(:), qmags(:)
 
   !concentration and temperature
-  real(r64), parameter :: conc = 0.39054925E+19 !cm^-3
+  !real(r64), parameter :: conc = 0.39054925E+19 !cm^-3
+  !real(r64), parameter :: conc = 4.75769e18 !3.7095e19 !cm^-3
+  !real(r64), parameter :: conc = 3.63325e19 !cm^-3
+  real(r64), parameter :: conc = 0.54269133E+20 !0.82378518E+20 !3.70938e19 !cm^-3
   !real(r64), parameter :: conc = 0.74965325E+20 !cm^-3
   real(r64), parameter :: T = 300.0 !1.0 !K
 
@@ -25,8 +28,8 @@ program screening_comparison
   !real(r64), parameter :: epsiloninf = 13.0619569 !From dfpt
   
   !wGaN
-  !real(r64), parameter :: m_eff = 0.2*me
-  real(r64), parameter :: m_eff = 0.22*me
+  real(r64), parameter :: m_eff = 0.259*me !0.2*me
+  !real(r64), parameter :: m_eff = 0.22*me
   real(r64), parameter :: epsiloninf = 5.8967622666666664 !5.8968
   !real(r64), parameter :: epsilon0 = ?
   
@@ -38,8 +41,8 @@ program screening_comparison
   real(r64), allocatable :: imeps(:, :), reeps(:, :), Omegas(:)
   
   if(this_image() == 1) then
-     write(*, '(A)')  'Screening test for Si'
-     !write(*, '(A)')  'Screening test for wGaN'
+     !write(*, '(A)')  'Screening test for Si'
+     write(*, '(A)')  'Screening test for wGaN'
      !write(*, '(A)')  'Screening test for GaAs'
      write(*, '(A, I5)') 'Number of coarray images = ', num_images()
   end if 
@@ -71,7 +74,9 @@ program screening_comparison
   !TODO Replace it with the more general expression involving
   !energy integral over f0(1 - f0).
   kTF = 1.0/kF/bohr2nm/pi**2
-  print*, 'Thomas-Fermi screening wave vector = ', kTF, ' nm^-1'
+  print*, 'T << T_F Thomas-Fermi = ', kTF, ' nm^-1'
+
+  print*, 'Better Thomas-Fermi: ', Thomas_Fermi(conc, m_eff, beta, mu, epsilon = 1.0_r64), ' nm^-1'
 
   !Create wave vector mesh
   numq = 400
@@ -147,6 +152,37 @@ contains
     write(*, "(A, 1E16.8, A)") 'calculated ne in parabolic model = ', aux, ' cm^-3'
     write(*, "(A, 1E16.8, A)") 'calculated chem. pot. in parabolic model = ', chempot, ' eV'
   end function chempot
+
+  real(r64) function Thomas_Fermi(conc, m_eff, beta, mu, epsilon)
+    !!Calculate the Thomas-Fermi screening wave vector
+    !!
+    !!
+    !! conc Carrier concentration in cm^-3
+    !! m_eff Effective mass in Kg
+    !! beta Inverse temperature energy in eV^-1
+    !! mu Chemical potential in eV
+    !! epsilon Background dielectric
+
+    real(r64), intent(in) :: conc, m_eff, beta, mu, epsilon
+
+    integer(i64), parameter :: N = 100000
+    real(r64) :: prefac, upper, f0(N)
+    real(r64), allocatable :: ens(:)
+
+    prefac = 0.5_r64*qe/pi**2/perm0*(2.0_r64*m_eff)**(1.5_r64)/(1.0e-12_r64*hbar)**3*beta*&
+         qe**1.5/epsilon
+    
+    upper = mu + 10.0 !eV, to be used as inifinity of Fermi integral
+
+    call linspace(ens, 0.0_r64, upper, N)
+
+    f0 = 1.0_r64/(exp(beta*(ens - mu)) + 1.0_r64)
+    
+    call compsimps(sqrt(ens)*f0*(1.0_r64 - f0), ens(2) - ens(1), Thomas_Fermi)
+    Thomas_Fermi = sqrt(prefac*Thomas_Fermi)*1.0e-9_r64 !nm^-1 
+    
+    !write(*, "(A, 1E16.8, A)") 'Thomas-Fermi wave vector = ', Thomas_Fermi, ' nm^-1'
+  end function Thomas_Fermi
 
   real(r64) function fdi(j, eta, upper)
     !! Fermi-Dirac integral for positive j

@@ -115,7 +115,6 @@ contains
     gchimp2 = prefac*overlap*Gsum !ev^2
   end function gchimp2
 
-  !TODO Might need to do this for G, G' /= 0
   pure real(r64) function gCoul2(el, crys, qcrys, evec_k, evec_kp)
     !! Function to calculate the Thomas-Fermi screened
     !! squared electron-electron vertex.
@@ -124,21 +123,37 @@ contains
     type(electron), intent(in) :: el
     real(r64), intent(in) :: qcrys(3)
     complex(r64), intent(in) :: evec_k(:), evec_kp(:)
+
+    real(r64) :: qcart(3), prefac, overlap
+    real(r64) :: Gsum, Gplusq(3)
+    integer :: ik1, ik2, ik3
+
+    !TODO: Shouldn't I use crys%epsiloninf instead using Sanborn's prescription?
+    prefac = 1.0e18_r64/crys%volume**2*qe**2/(perm0*crys%epsilon0)**2
+
+    !Transfer wave vector in Cartesian coordinates
+    qcart = matmul(crys%reclattvecs, qcrys)
     
-    real(r64) :: qcart(3), prefac, overlap, qmag
-
-    prefac = 1.0e18_r64/crys%volume**2/qe**2
-
-    !Magnitude of q-vector
-    qmag = twonorm(matmul(crys%reclattvecs, qcrys))
-
     !This is [U(k')U^\dagger(k)]_nm squared
     !(Recall that the electron eigenvectors came out daggered from el_wann_epw.)
     overlap = (abs(dot_product(evec_kp, evec_k)))**2
 
-    !TODO: Shouldn't I use crys%epsiloninf instead using Sanborn's prescription?
-    gCoul2 = prefac*overlap* &
-         (qe**2/perm0/crys%epsilon0/(qmag**2 + crys%qTF**2))**2 !eV^2
+    Gsum = 0.0_r64
+    !Use a safe range for the G vector sums
+    do ik1 = -3, 3
+       do ik2 = -3, 3
+          do ik3 = -3, 3
+             Gplusq = (  ik1*crys%reclattvecs(:, 1) &
+                  + ik2*crys%reclattvecs(:, 2) &
+                  + ik3*crys%reclattvecs(:, 3)  ) + qcart
+             
+             Gsum = Gsum + &
+                  1.0_r64/(twonorm(Gplusq)**2 + crys%qTF**2)**2 !eV^2
+          end do
+       end do
+    end do
+
+    gCoul2 = Gsum*prefac*overlap
   end function gCoul2
   
   pure real(r64) function Vm2_3ph(ev1_s1, ev2_s2, ev3_s3, &
@@ -2443,8 +2458,9 @@ contains
           !q \equiv k1 - k3
           q_vec = vec_sub(k1_vec, k3_vec, el%wvmesh, crys%reclattvecs)
 
-!!$          !q = \equiv k1 - k3, without Umklapp, fractional units
-!!$          q_frac_noU = k1_vec%frac - k3_vec%frac
+          !DBG
+          !q = \equiv k1 - k3, without Umklapp, fractional units
+          !q_frac_noU = k1_vec%frac - k3_vec%frac
 
           do n3 = 1, el%numbands
              !Electron 3 energy
@@ -2482,8 +2498,6 @@ contains
                    !Squared matrix element
                    g2 = gCoul2(el, crys, q_vec%frac, &
                         el%evecs_irred(ik1, n1, :), el%evecs(ik3, n3, :))
-!!$                   g2 = gCoul2(el, crys, q_frac_noU, &
-!!$                        el%evecs_irred(ik1, n1, :), el%evecs(ik3, n3, :))
                    
                    !Fermi function of electron 2
                    fermi2 = Fermi(en2, el%chempot, crys%T)
@@ -2492,6 +2506,7 @@ contains
                       !Electron 4 energy
                       en4 = el%ens(ik4, n4)
 
+                      !This does not seem necessary but can be done anyway for numerical savings.
                       !Apply energy window to electron 4
                       if(abs(en4 - el%enref) > el%fsthick) cycle
 
@@ -2508,8 +2523,8 @@ contains
                            ik2, n2, el%wvmesh, el%simplex_map, &
                            el%simplex_count, el%simplex_evals)
 
-                      !Temperature dependent occupation factor
-                      !f1.f2.(1 - f3)(1 - f4)/[f1(1 - f1)]
+!!$                      !Temperature dependent occupation factor
+                      !f1.f2.(1 - f3)(1 - f4)/[f1(1 - f1)] simplified
                       occup_fac = fermi2*(1.0_r64 - &
                            fermi3*(1.0_r64 - exp(beta*(en3 - en1))))* &
                            (1.0_r64 - fermi4)
