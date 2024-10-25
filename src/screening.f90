@@ -127,6 +127,69 @@ contains
     end do
   end subroutine calculate_Hilbert_weights
 
+   subroutine Hilbert_transform(Reeps_T, Omegas, spec_eps_T)
+    !! Does Hilbert tranform of spectral head of bare polarizability 
+    !! Ref - EQ (4), R. Balito et. al. 
+    !!
+    !! Reeps_T Real part of bare polarizability
+    !! Omega Energy of excitation in the electron gas
+    !! spec_eps_T Spectral head of bare polarizability
+    !! 
+    
+    real(r64), allocatable, intent(out) :: Reeps_T(:)
+    real(r64), intent(in) :: Omegas(:)
+    real(r64), intent(in) :: spec_eps_T(:)
+    
+    ! Local variables
+    real(r64) :: sum1, sum2, diff, bh
+    integer(i64) :: nOmegas, kh, nh
+    ! Local constant
+    real(r64), parameter :: smalln = 1e-20  ! a number close to zero
+    
+    nOmegas = size(Omegas)
+    allocate(Reeps_T(nOmegas))
+
+    !
+    do kh = 1, nOmegas
+        sum1 = 0.0_r64
+        sum2 = 0.0_r64
+        do nh = 1, nOmegas - 1 - kh
+           bh = log((nh + 1.0_r64)/nh)
+           ! To avoid edge error in the upper limit
+           if ((kh + nh) < nOmegas) then
+              sum1 = sum1 - (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh + nh) + &
+                          (1.0_r64 - nh*bh)*spec_eps_T(kh + nh + 1)
+           else 
+              ! For outside the upper boundary, assume the function = small number -> 0
+              sum1 = sum1 - (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh + nh) + &
+                      (1.0_r64 - nh*bh)*smalln
+           end if
+        end do
+
+        do nh = 1, kh - 1
+           bh = log((nh + 1.0_r64)/nh)
+           ! To avoid edge error in the lower limit
+           if ((kh - nh) > 1) then
+              sum2 = sum2 + (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh - nh) - &
+                         (1.0_r64 - nh*bh)*spec_eps_T(kh - nh - 1)
+           else 
+              ! For outside the lower boundary, assume the function = small number -> 0
+              sum2 = sum2 + (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh - nh) - &
+                     (1.0_r64 - nh*bh)*smalln
+           end if
+        end do
+        
+        ! To avoid edge error
+        if (kh >= 2 .and. kh <= (nOmegas-1)) then
+           diff = spec_eps_T(kh + 1) - spec_eps_T(kh - 1)
+        else
+        ! For outside the boundary
+            diff = smalln
+        end if
+        Reeps_T(kh) = (-1.0_r64/pi)*(diff + sum1 + sum2)
+    end do
+  end subroutine Hilbert_transform 
+
   subroutine head_polarizability_real_3d_T(Reeps_T, Omegas, spec_eps_T, Hilbert_weights_T)
     !! Head of the bare real polarizability of the 3d Kohn-Sham system using
     !! Hilbert transform for a given set of temperature-dependent quantities.
@@ -508,14 +571,15 @@ contains
             spec_eps, energylist, qcrys, el, wann, crys, num%tetrahedra)
           
           !Calculate re_eps with Hilbert-Kramers-Kronig transform
-          call calculate_Hilbert_weights(&
-               w_disc = energylist, &
-               w_cont = energylist, &
-               zeroplus = zeroplus, & !Can this magic "small" number be removed?
-               Hilbert_weights = Hilbert_weights)
+          !call calculate_Hilbert_weights(&
+          !     w_disc = energylist, &
+          !     w_cont = energylist, &
+          !     zeroplus = zeroplus, & !Can this magic "small" number be removed?
+          !     Hilbert_weights = Hilbert_weights)
 
-          call head_polarizability_real_3d_T(Reeps, energylist, spec_eps, Hilbert_weights)
+          !call head_polarizability_real_3d_T(Reeps, energylist, spec_eps, Hilbert_weights)
 
+          call hilbert_transform(Reeps, energylist, spec_eps)
           call head_polarizability_imag_3d_T(Imeps, energylist, energylist, spec_eps)
           
           !Calculate RPA dielectric (diagonal in G-G' space)
