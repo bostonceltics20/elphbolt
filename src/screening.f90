@@ -127,6 +127,65 @@ contains
     end do
   end subroutine calculate_Hilbert_weights
 
+   subroutine hilbert_transform(Reeps_T, Omegas, spec_eps_T)
+    !! EQ (4), R. Balito et. al. 
+    !!
+    !! Reeps_T Real part of bare polarizability
+    !! Omega Energy of excitation in the electron gas
+    !! spec_eps_T Spectral head of bare polarizability
+    !! 
+    
+    real(r64), allocatable, intent(out) :: Reeps_T(:)
+    real(r64), intent(in) :: Omegas(:)
+    real(r64), intent(in) :: spec_eps_T(:)
+    
+    ! Local variables
+    real(r64) :: in1, in2, fin, bl !, domegas
+    integer(i64) :: nx, kh, np
+
+    nx = size(Omegas)
+    allocate(Reeps_T(nx))
+
+    !domegas = Omegas(2)-Omegas(1)
+    
+    do kh = 1, nx
+        in1=0.0_r64
+        in2=0.0_r64
+        do np=1,nx-1-kh
+            bl = log(real(np+1.0_r64)/real(np))
+            if ( (kh+np).lt.nx) then
+              in1 = in1 - (1.0_r64-(np+1.0_r64)*bl)*spec_eps_T(kh+np) + &
+                          (1.0_r64-np*bl)*spec_eps_T(kh+np+1)
+            else 
+              !print *,"Hilbert transform: Boundary breached",kh+np,nx
+              in1 = in1 - (1.0_r64-(np+1.0_r64)*bl)*spec_eps_T(kh+np) + &
+                      (1.0_r64-np*bl)*1e-12_r64
+            end if
+        end do
+
+        do np=1,kh-1
+           bl = log(real(np+1.0_r64)/real(np))
+           if ((kh-np).gt.1) then
+             in2 = in2 + (1.0_r64-(np+1.0_r64)*bl)*spec_eps_T(kh-np) - &
+                         (1.0_r64-np*bl)*spec_eps_T(kh-np-1)
+            else 
+              !print *,"Hilbert transform: Boundary breached",kh+np,nx
+              in2 = in2 + (1.0_r64-(np+1.0_r64)*bl)*spec_eps_T(kh-np) - &
+                     (1.0_r64-np*bl)*1e-12_r64
+            end if
+        end do
+        
+        if (kh.ge.2 .and. kh.le.(nx-1)) then
+           fin = spec_eps_T(kh+1)-spec_eps_T(kh-1)
+         else
+            fin = 1e-12_r64
+         end if
+        Reeps_T(kh) = (-1.0_r64/pi)*(fin+in1+in2)
+        
+    end do
+
+  end subroutine hilbert_transform 
+
   subroutine head_polarizability_real_3d_T(Reeps_T, Omegas, spec_eps_T, Hilbert_weights_T)
     !! Head of the bare real polarizability of the 3d Kohn-Sham system using
     !! Hilbert transform for a given set of temperature-dependent quantities.
@@ -508,14 +567,15 @@ contains
             spec_eps, energylist, qcrys, el, wann, crys, num%tetrahedra)
           
           !Calculate re_eps with Hilbert-Kramers-Kronig transform
-          call calculate_Hilbert_weights(&
-               w_disc = energylist, &
-               w_cont = energylist, &
-               zeroplus = zeroplus, & !Can this magic "small" number be removed?
-               Hilbert_weights = Hilbert_weights)
+          !call calculate_Hilbert_weights(&
+          !     w_disc = energylist, &
+          !     w_cont = energylist, &
+          !     zeroplus = zeroplus, & !Can this magic "small" number be removed?
+          !     Hilbert_weights = Hilbert_weights)
 
-          call head_polarizability_real_3d_T(Reeps, energylist, spec_eps, Hilbert_weights)
+          !call head_polarizability_real_3d_T(Reeps, energylist, spec_eps, Hilbert_weights)
 
+          call hilbert_transform(Reeps, energylist, spec_eps)
           call head_polarizability_imag_3d_T(Imeps, energylist, energylist, spec_eps)
           
           !Calculate RPA dielectric (diagonal in G-G' space)

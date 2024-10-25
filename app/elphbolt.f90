@@ -156,11 +156,11 @@ program elphbolt
 
 !!$     !TEST/DUBUG
 !!$     !Calculate RPA dielectric for q over Gamma-Gamma along x over a uniform boson energy mesh
-!!$     call t_event%start_timer('RPA dielectric')
-!!$     !call calculate_RPA_dielectric_3d_G0_scratch(el, crys, num, wann)
-!!$     call calculate_RPA_dielectric_3d_G0_scratch(el, crys, num, wann)
-!!$     call t_event%end_timer('RPA dielectric')
-!!$     call exit
+     call t_event%start_timer('RPA dielectric')
+     !call calculate_RPA_dielectric_3d_G0_scratch(el, crys, num, wann)
+     call calculate_RPA_dielectric_3d_G0_scratch(el, crys, num, wann)
+     call t_event%end_timer('RPA dielectric')
+     call exit
 !!$     !!
      
      if(num%phdef_Tmat) then
