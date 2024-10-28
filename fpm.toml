@@ -83,3 +83,8 @@ main = "check_interactions_symmetries.f90"
 name = "bte_regression"
 source-dir="test"
 main = "bte_regression.f90"
+
+[[test]]
+name = "fermi_window_adjustment"
+source-dir="test"
+main = "check_fermi_window_adjustment.f90"
