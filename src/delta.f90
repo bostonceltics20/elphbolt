@@ -586,11 +586,25 @@ contains
              kk = scvol_vertices(aux,3)
              aux = mux_vector([ii, jj, kk], mesh, 1_i64)
              tmp = aux !Guaranteed to be > 0
-             if(blocks) then
-                !Which point in indexlist does aux correspond to?
-                call binsearch(indexlist, aux, tmp) !tmp < 0 if search fails.
-             end if
-             tetra(count, tl) = tmp
+             
+             
+	    ! If energy-restricted blocks are being used, find the index in indexlist
+	    ! The updated snippet keeps track of vertices whose eigenvalues lie outside the chosen window around fermi energy
+	    
+	    if(blocks) then
+		call binsearch(indexlist, aux, tmp)   ! Binary search in indexlist
+
+		
+		if (tmp < 0) then
+		    tetra(count, tl) = -aux            ! If vertex is outside Fermi window, save negative index (for the exceptional vertices)
+		else
+		    tetra(count, tl) = tmp             ! Save the index from indexlist
+		end if
+		
+	    else
+	    tetra(count, tl) = aux                ! Save the multiplexed index
+	    end if
+	    
 
              if(tmp > 0) then
                 !Save the mapping of a wave vector index to a (tetrahedron, vertex)
