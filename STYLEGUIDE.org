@@ -1,0 +1,183 @@
+* Style guide for  ~elphbolt~
+** Use the right case
+Fortran is case insensitive: ~FUNCTION~ means the same as ~function~. We write all Fortran constructs in lower case. This includes, but is not limited to, the following: ~program~, ~module~, ~type~, ~class~, ~intent~, ~if~, ~do~, ~case~, ~select~, ~subroutine~, ~function~, ~pure~, ~elemental~, ~recursive~, ~integer~, ~real~, and ~logical~. Do not, under any circumstance, write in all-caps. All-caps things are hard to read and hard to type.
+
+Write intrinsic math functions in lower case: ~sqrt~, ~exp~, ~log~, ~nint~, ~max~, ~mod~, ~modulo~, ~pack~, ~count~, etc.
+
+For certain situations, the mathematical notation distinguishes between the upper and lower case. The \( \Gamma \) function is one example. This also happens to be a Fortran intrinsic and it would make sense to write ~Gamma~ instead of ~gamma~.
+
+Use the same rules for user-defined symbols.
+
+** Follow naming convention
+Use ~snake_case~, not ~camelCase~. The latter is notoriously difficult to read, especially for long, descriptive names.
+
+Use common sense when writing descriptive names. If it is clear from the context of the code, using ~i~, ~j~, and ~k~ to denote Cartesian indices is perfectly fine. You definitely should not write ~Cartesian_index_in_direction_x_hat~! That's just silly. Similarly, ~linspace~ and ~derivx~ are fine. On the other hand, it is better to write ~field_coupling_term~ instead of ~fieldcouplingterm~. Most definitely, do not write monstrosities like ~fcouptrm~.
+
+** Indent your code
+Your code should be properly indented. The following is acceptable:
+#+BEGIN_SRC fortran
+  do j = 1, size(B)
+     C(:, j) = A(:)*B(j)
+  end do
+#+END_SRC
+
+while the following is not
+#+BEGIN_SRC fortran
+  do j = 1, size(B)
+  C(:, j) = A(:)*B(j)
+  end do
+#+END_SRC
+
+A good text editor allows selecting a region and pressing ~TAB~ or something similar to automatically apply proper indentation. If your editor does not do that, get a better editor. Set your ~TAB~ to 3 spaces.
+
+** Use space and comma properly
+Write code the way you would write an essay. Use spaces and linebreaks to improve readability and separate conceptually distinct sections of the calculation. Below are some examples.
+
+The following is an acceptable use of spaces around mathematical operations:
+#+BEGIN_SRC fortran
+  fx = sin(x)/(1 + (2 - x**2))
+#+END_SRC
+
+while the following is not:
+#+BEGIN_SRC fortran
+  fx=sin( x ) / (1+(2-x**2))
+#+END_SRC
+
+Several issues with the second code snippet. When we do math on paper, we write \(\sin(x)\), not \(\sin(~ x ~ )\). That is, there is no space between the function argument and the enclosing brackets. The code should look like the equation as much as possible. Similarly, one should use a space on either side of ~+~ and ~-~, but not around ~*~, ~/~, and ~**~.
+
+Use comma like you would in writing. So, write ~thing1, thing2~, not ~thing1,thing2~.
+
+Following are some examples where one or more rules have been broken in the second column. Try to identify all the issues.
+
+| do                                    | don't                                |
+|---------------------------------------+--------------------------------------|
+| ~if(condition)~                       | ~if( condition )~                    |
+| ~do i = 1, 3~                         | ~do i=1,3~                           |
+| ~call do_magic(hat, bunny)~           | ~call do_magic (hat,bunny)~          |
+| ~real(r64), intent(in) :: data(:, :)~ | ~real(r64), intent(in) :: data(:,:)~ |
+| ~interface operator(.umklapp.)~       | ~interface operator( .umklapp. )~    |
+| ~use params, only: kB, twopi~         | ~use params,only : kB,twopi~         |
+
+** Use modern notation
+Use modern notation everywhere.
+
+| do           | don't              |
+|--------------+--------------------|
+| ~>~ and ~>=~ | ~.gt.~ and  ~.ge.~ |
+| ~<~ and ~<=~ | ~.lt.~ and ~le~    |
+| ~==~         | ~.eq.~             |
+| ~/=~         | ~.ne~              |
+| ~[1, 2, 3]~  | ~(/1, 2, 3/)~      |
+
+** Brevity
+Keep your code brief by using a functional style over an imperative style. It is preferable to write
+
+#+BEGIN_SRC fortran
+  !Assume A, B, and C are NxN matrices and m is a scalar.
+
+  A = A*B !elementwise multiplication
+
+  C = A + B !elementwise addition
+	
+  C = m*C !elementwise multiplication with a scalar
+#+END_SRC
+
+instead of
+#+BEGIN_SRC fortran
+  !Assume A, B, and C are NxN matrices and m is a scalar.
+  N = size(A, 1)
+
+  do j = 1, N
+     do i = 1, N
+	A(i, j) = A(i, j)*B(i, j)
+     end do
+  end do
+
+  do j = 1, N
+     do i = 1, N
+	C(i, j) = A(i, j) + B(i, j)
+     end do
+  end do
+
+  do j = 1, N
+     do i = 1, N
+	C(i, j) = m*C(i, j)
+     end do
+  end do
+#+END_SRC
+
+It is rather obvious why the first is preferable.
+
+** Mind the memory contiguity
+Fortran arrays are saved in a column major manner. C, on the other hand, is row major. Mind the difference when you access array slices.
+
+** Minimize conditionals inside nested loops
+Instead of
+#+BEGIN_SRC fortran
+  do j = 1, N
+     do i = 1, N
+	if(use_special_algo) then
+	   y = function_special(i, j)
+	else
+	   y = function_boring(i, j)
+	end if
+     end do
+  end do
+#+END_SRC
+
+consider pulling out the conditional outside by doing
+
+#+BEGIN_SRC fortran
+  function_pointer => function_boring
+  if(use_special_algo) function_pointer => function_special
+
+  do j = 1, N
+     do i = 1, N
+	y = function_pointer(i, j)
+     end do
+  end do
+
+  nullify(function_pointer)
+#+END_SRC
+
+In order to do the latter, you will have to define an ~abstract interface~ for ~function_special~ and ~function_boring~. Remember to nullify any associated pointers before exiting a procedure.
+
+** Use ~select case~
+For condition based switching, use ~select case~ over ~if~ and ~else if~. So do
+#+BEGIN_SRC fortran
+  select case(particle)
+  case('el')
+     print*, "I'm an electron."
+  case('ph')
+     print*, "I'm a phonon."
+  case('pl')
+     print*, "I'm a plasmon."
+  case default
+     print*, "I don't know who I am."
+  end select
+#+END_SRC
+
+instead of
+
+#+BEGIN_SRC fortran
+    if(particle == 'el') then
+       print*, "I'm an electron."
+    else if(particle == 'ph') then
+       print*, "I'm a phonon."
+    else if(particle == 'pl') then
+       print*, "I'm a plasmon."
+    else
+       print*, "I don't know who I am."
+    end if
+#+END_SRC
+
+** Do not use implicit typing
+Every ~program~ and ~module~ should have ~implicit none~ declared up top.
+** Never, ever use ~goto~
+Please.
+** Do not ~use~ everything from a module
+Always specify exactly what you need from a module. That is, always do ~use module_something, only: thing1, thing2~ instead of just ~use module_something~.
+** Only immutables (~parameter~) can be global
+No other variable should be. Subroutines should not access global variables. Write ~pure~ subroutines and functions whenever possible. Strictly control data access and modification rights with the ~intent~ keyword.
+** Use a light touch approach
+Use objects but don't write Java. Use the functional style but don't try to mimic Haskell. The style we use can be called object-based procedural. Try to strike a good balance between performance, readability, and extensibility. Think La Sagrada Familia, not the Sistine Chapel.
