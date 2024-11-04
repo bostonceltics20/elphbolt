@@ -4,7 +4,7 @@ Fortran is case insensitive: ~FUNCTION~ means the same as ~function~. We write a
 
 Write intrinsic math functions in lower case: ~sqrt~, ~exp~, ~log~, ~nint~, ~max~, ~mod~, ~modulo~, ~pack~, ~count~, etc.
 
-For certain situations, the mathematical notation distinguishes between the upper and lower case. The \( \Gamma \) function is one example. This also happens to be a Fortran intrinsic and it would make sense to write ~Gamma~ instead of ~gamma~.
+For certain situations, the mathematical notation distinguishes between the upper and lower case. The $\Gamma$ function is one example. This also happens to be a Fortran intrinsic and it would make sense to write ~Gamma~ instead of ~gamma~.
 
 Use the same rules for user-defined symbols.
 
@@ -21,7 +21,7 @@ Your code should be properly indented. The following is acceptable:
   end do
 #+END_SRC
 
-while the following is not
+while the following is not:
 #+BEGIN_SRC fortran
   do j = 1, size(B)
   C(:, j) = A(:)*B(j)
@@ -43,7 +43,7 @@ while the following is not:
   fx=sin( x ) / (1+(2-x**2))
 #+END_SRC
 
-Several issues with the second code snippet. When we do math on paper, we write \(\sin(x)\), not \(\sin(~ x ~ )\). That is, there is no space between the function argument and the enclosing brackets. The code should look like the equation as much as possible. Similarly, one should use a space on either side of ~+~ and ~-~, but not around ~*~, ~/~, and ~**~.
+Several issues with the second code snippet. When we do math on paper, we write $\sin(x)$, not $\sin(~ x ~ )$. That is, there is no space between the function argument and the enclosing brackets. The code should look like the equation as much as possible. Similarly, one should use a space on either side of ~+~ and ~-~, but not around ~*~, ~/~, and ~**~.
 
 Use comma like you would in writing. So, write ~thing1, thing2~, not ~thing1,thing2~.
 
