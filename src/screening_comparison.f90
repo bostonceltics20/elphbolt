@@ -28,8 +28,7 @@ program screening_comparison
   !real(r64), parameter :: epsiloninf = 13.0619569 !From dfpt
   
   !wGaN
-  real(r64), parameter :: m_eff = 0.22*me !0.259*me !0.259*me !0.2*me
-  !real(r64), parameter :: m_eff = 0.22*me
+  real(r64), parameter :: m_eff = 0.259*me !0.2*me
   real(r64), parameter :: epsiloninf = 5.8968
   !real(r64), parameter :: epsilon0 = ?
   
