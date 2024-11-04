@@ -127,68 +127,134 @@ contains
     end do
   end subroutine calculate_Hilbert_weights
 
-   subroutine Hilbert_transform(Reeps_T, Omegas, spec_eps_T)
+!!$  subroutine Hilbert_transform(Reeps_T, Omegas, spec_eps_T)
+!!$    !! Does Hilbert tranform of spectral head of bare polarizability 
+!!$    !! Ref - EQ (4), R. Balito et. al. 
+!!$    !!
+!!$    !! Reeps_T Real part of bare polarizability
+!!$    !! Omega Energy of excitation in the electron gas
+!!$    !! spec_eps_T Spectral head of bare polarizability
+!!$    !! 
+!!$
+!!$    real(r64), allocatable, intent(out) :: Reeps_T(:)
+!!$    real(r64), intent(in) :: Omegas(:)
+!!$    real(r64), intent(in) :: spec_eps_T(:)
+!!$
+!!$    ! Locals
+!!$    real(r64) :: sum1, sum2, diff, bh
+!!$    integer(i64) :: nOmegas, kh, nh
+!!$    real(r64), parameter :: smalln = 1e-20  ! a number close to zero
+!!$
+!!$    nOmegas = size(Omegas)
+!!$    allocate(Reeps_T(nOmegas))
+!!$
+!!$    do kh = 1, nOmegas
+!!$       sum1 = 0.0_r64
+!!$       sum2 = 0.0_r64
+!!$       do nh = 1, nOmegas - 1 - kh
+!!$          bh = log((nh + 1.0_r64)/nh)
+!!$          ! To avoid edge error in the upper limit
+!!$          if((kh + nh) < nOmegas) then
+!!$             sum1 = sum1 - (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh + nh) + &
+!!$                  (1.0_r64 - nh*bh)*spec_eps_T(kh + nh + 1)
+!!$          else 
+!!$             ! For outside the upper boundary, assume the function = small number -> 0
+!!$             sum1 = sum1 - (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh + nh) + &
+!!$                  (1.0_r64 - nh*bh)*smalln
+!!$          end if
+!!$       end do
+!!$
+!!$       do nh = 1, kh - 1
+!!$          bh = log((nh + 1.0_r64)/nh)
+!!$          ! To avoid edge error in the lower limit
+!!$          if((kh - nh) > 1) then
+!!$             sum2 = sum2 + (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh - nh) - &
+!!$                  (1.0_r64 - nh*bh)*spec_eps_T(kh - nh - 1)
+!!$          else 
+!!$             ! For outside the lower boundary, assume the function = small number -> 0
+!!$             sum2 = sum2 + (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh - nh) - &
+!!$                  (1.0_r64 - nh*bh)*smalln
+!!$          end if
+!!$       end do
+!!$
+!!$       ! To avoid edge error
+!!$       if(kh >= 2 .and. kh <= (nOmegas-1)) then
+!!$          diff = spec_eps_T(kh + 1) - spec_eps_T(kh - 1)
+!!$       else
+!!$          ! For outside the boundary
+!!$          diff = smalln
+!!$       end if
+!!$       Reeps_T(kh) = (-1.0_r64/pi)*(diff + sum1 + sum2)
+!!$    end do
+!!$  end subroutine Hilbert_transform
+
+  subroutine Hilbert_transform(f, Hf)
     !! Does Hilbert tranform of spectral head of bare polarizability 
     !! Ref - EQ (4), R. Balito et. al. 
     !!
-    !! Reeps_T Real part of bare polarizability
-    !! Omega Energy of excitation in the electron gas
-    !! spec_eps_T Spectral head of bare polarizability
-    !! 
-    
-    real(r64), allocatable, intent(out) :: Reeps_T(:)
-    real(r64), intent(in) :: Omegas(:)
-    real(r64), intent(in) :: spec_eps_T(:)
-    
-    ! Local variables
-    real(r64) :: sum1, sum2, diff, bh
-    integer(i64) :: nOmegas, kh, nh
-    ! Local constant
-    real(r64), parameter :: smalln = 1e-20  ! a number close to zero
-    
-    nOmegas = size(Omegas)
-    allocate(Reeps_T(nOmegas))
+    !! Hf H.f(x), the Hilbert transform
+    !! f(x) the function
 
-    !
-    do kh = 1, nOmegas
-        sum1 = 0.0_r64
-        sum2 = 0.0_r64
-        do nh = 1, nOmegas - 1 - kh
-           bh = log((nh + 1.0_r64)/nh)
-           ! To avoid edge error in the upper limit
-           if ((kh + nh) < nOmegas) then
-              sum1 = sum1 - (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh + nh) + &
-                          (1.0_r64 - nh*bh)*spec_eps_T(kh + nh + 1)
-           else 
-              ! For outside the upper boundary, assume the function = small number -> 0
-              sum1 = sum1 - (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh + nh) + &
-                      (1.0_r64 - nh*bh)*smalln
-           end if
-        end do
+    real(r64), intent(in) :: f(:)
+    real(r64), allocatable, intent(out) :: Hf(:)
 
-        do nh = 1, kh - 1
-           bh = log((nh + 1.0_r64)/nh)
-           ! To avoid edge error in the lower limit
-           if ((kh - nh) > 1) then
-              sum2 = sum2 + (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh - nh) - &
-                         (1.0_r64 - nh*bh)*spec_eps_T(kh - nh - 1)
-           else 
-              ! For outside the lower boundary, assume the function = small number -> 0
-              sum2 = sum2 + (1.0_r64 - (nh + 1.0_r64)*bh)*spec_eps_T(kh - nh) - &
-                     (1.0_r64 - nh*bh)*smalln
-           end if
-        end do
-        
-        ! To avoid edge error
-        if (kh >= 2 .and. kh <= (nOmegas-1)) then
-           diff = spec_eps_T(kh + 1) - spec_eps_T(kh - 1)
-        else
-        ! For outside the boundary
-            diff = smalln
-        end if
-        Reeps_T(kh) = (-1.0_r64/pi)*(diff + sum1 + sum2)
+    ! Locals
+    real(r64) :: term2, term3, term1, b
+    integer(i64) :: nxs, k, n
+    !real(r64), parameter :: smalln = 1e-20  ! a number close to zero
+
+    !Number points on domain grid
+    nxs = size(f)
+
+    allocate(Hf(nxs))
+
+    !Assume that f vanishes at the edges, and Hf also
+    Hf(1) = 0.0_r64
+    Hf(nxs) = 0.0_r64
+    
+    do k = 2, nxs - 1 !Run over the internal points
+       term2 = 0.0_r64 !2nd term in Bilato Eq. 4
+       term3 = 0.0_r64 !3rd term in Bilato Eq. 4
+       
+       do n = 2, nxs - 1 - k !Partial sum over internal points
+          b = log((n + 1.0_r64)/n)
+          
+          ! To avoid edge error in the upper limit
+          !if((k + n) < nxs) then
+          term2 = term2 - (1.0_r64 - (n + 1.0_r64)*b)*f(k + n) + &
+               (1.0_r64 - n*b)*f(k + n + 1)
+          !else 
+          !   ! For outside the upper boundary, assume the function = small number -> 0
+          !   term2 = term2 - (1.0_r64 - (n + 1.0_r64)*b)*f(k + n) + &
+          !        (1.0_r64 - n*b)*smalln
+          !end if
+       end do
+
+       do n = 2, k - 2 !Partial sum over internal points
+          b = log((n + 1.0_r64)/n)
+          
+          ! To avoid edge error in the lower limit
+          !if((k - n) > 1) then
+          term3 = term3 + (1.0_r64 - (n + 1.0_r64)*b)*f(k - n) - &
+               (1.0_r64 - n*b)*f(k - n - 1)
+          !else 
+          !   ! For outside the lower boundary, assume the function = small number -> 0
+          !   term3 = term3 + (1.0_r64 - (n + 1.0_r64)*b)*f(k - n) - &
+          !        (1.0_r64 - n*b)*smalln
+          !end if
+       end do
+
+       ! To avoid edge error
+       !if(k >= 2 .and. k <= (nxs-1)) then
+          term1 = f(k + 1) - f(k - 1)
+       !else
+       !   ! For outside the boundary
+       !   term1 = smalln
+       !end if
+       
+       Hf(k) = (-1.0_r64/pi)*(term1 + term2 + term3)
     end do
-  end subroutine Hilbert_transform 
+  end subroutine Hilbert_transform
 
   subroutine head_polarizability_real_3d_T(Reeps_T, Omegas, spec_eps_T, Hilbert_weights_T)
     !! Head of the bare real polarizability of the 3d Kohn-Sham system using
@@ -278,11 +344,18 @@ contains
     !Locals
     integer(i64) :: m, n, ik, iOmega, nOmegas, k_indvec(3), kp_indvec(3)
     real(r64) :: overlap, ek, ekp, delta, Omega_l, Omega_r, &
-         el_ens_kp(1, el%numbands), kppathvecs(1, 3)
+         el_ens_kp(1, el%numbands), kppathvecs(1, 3), Gaussian_delta, &
+         onebyroot2pi
     complex(r64) :: el_evecs_kp(1, el%numbands, el%numbands)
     procedure(delta_fn), pointer :: delta_fn_ptr => null()
 
+    real(r64) :: dOmega
+
     nOmegas = size(Omegas)
+
+    dOmega = Omegas(2) - Omegas(1)
+
+    onebyroot2pi = 1.0_r64/sqrt(2.0_r64*pi)
     
     allocate(spec_eps(nOmegas))
 
@@ -291,7 +364,8 @@ contains
 
     spec_eps = 0.0
     do ik = 1, el%nwv
-       kppathvecs(1, :) = el%wavevecs(ik, :) .umklapp. qcrys
+       !kppathvecs(1, :) = el%wavevecs(ik, :) .umklapp. qcrys
+       kppathvecs(1, :) = el%wavevecs(ik, :) + qcrys
        call wann%el_wann(crys = crys, &
             nk = 1_i64, &
             kvecs = kppathvecs, &
@@ -304,27 +378,64 @@ contains
 
           ek = el%ens(ik, m)
 
+          !if(Fermi(ek, el%chempot, crys%T) <= 1.0e-1) cycle
+          
           !Apply energy window to initial electron
           if(abs(ek - el%enref) > el%fsthick) cycle
           
-          do iOmega = 1, nOmegas
+          !do iOmega = 1, nOmegas
+          !do iOmega = 200, nOmegas-200
+          do iOmega = nOmegas/2 + 2, nOmegas !positive portion
              do n = 1, wann%numwannbands
 
                 ekp = el_ens_kp(1, n)
 
+!!$                if(abs(Fermi(ek, el%chempot, crys%T) - Fermi(ekp, el%chempot, crys%T)) &
+!!$                     <= 1.0e-2_r64*kB*crys%T) cycle
+                
+                !if(Fermi(ekp, el%chempot, crys%T) > 99.0e-2) cycle
+                
                 !Apply energy window to final electron
                 if(abs(ekp - el%enref) > el%fsthick) cycle
 
                 !This is |U(k')U^\dagger(k)|_nm squared
                 !(Recall that U^\dagger(k) is the diagonalizer of the electronic hamiltonian.)
                 overlap = (abs(dot_product(el_evecs_kp(1, n, :), el%evecs(ik, m, :))))**2
-                
+
+!!$                !DBG
+!!$                Omega_l = Omegas(iOmega) - dOmega
+!!$                Omega_r = Omegas(iOmega) + dOmega
+!!$                
+!!$                if(Omega_l < ekp - ek .and. ekp - ek < Omega_r) continue
+!!$                
+!!$                delta = finite_element(ekp - ek, &
+!!$                     Omega_l, Omegas(iOmega), Omega_r)/dOmega
+!!$                
 !!$                spec_eps(iOmega) = spec_eps(iOmega) + &
-!!$                     (Fermi(ek, el%chempot, crys%T) - &
-!!$                     Fermi(ekp, el%chempot, crys%T))*overlap* &
-!!$                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
-!!$                     el%wvmesh, el%simplex_map, &
-!!$                     el%simplex_count, el%simplex_evals)
+!!$                     Fermi(ek, el%chempot, crys%T)*&
+!!$                     (1.0_r64 - Fermi(ek, el%chempot, crys%T))/kB/crys%T* &
+!!$                     (ekp - ek)*overlap*delta/product(el%wvmesh)
+                
+!!$                !bad
+
+!!$                if(all(qcrys == 0.0_r64)) then
+!!$                   spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                        Fermi(ek, el%chempot, crys%T)* - &
+!!$                        (1.0_r64 - Fermi(ek, el%chempot, crys%T))*overlap* &
+!!$                        (delta_fn_ptr(ekp + Omegas(iOmega), ik, m, &
+!!$                        el%wvmesh, el%simplex_map, &
+!!$                        el%simplex_count, el%simplex_evals) &
+!!$                        - delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                        el%wvmesh, el%simplex_map, &
+!!$                        el%simplex_count, el%simplex_evals))
+!!$                else
+                   spec_eps(iOmega) = spec_eps(iOmega) + &
+                        (Fermi(ek, el%chempot, crys%T) - &
+                        Fermi(ekp, el%chempot, crys%T))*overlap* &
+                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+                     el%wvmesh, el%simplex_map, &
+                     el%simplex_count, el%simplex_evals)
+!!$                end if
                 
 !!$                spec_eps(iOmega) = spec_eps(iOmega) + &
 !!$                     (Fermi(ek, el%chempot, crys%T) - &
@@ -332,14 +443,99 @@ contains
 !!$                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
 !!$                     el%wvmesh, el%simplex_map, &
 !!$                     el%simplex_count, el%simplex_evals)
-!!$                
-                spec_eps(iOmega) = spec_eps(iOmega) + &
-                     (Fermi(ekp - Omegas(iOmega), el%chempot, crys%T) - &
-                     Fermi(ekp, el%chempot, crys%T))*overlap* &
-                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
-                     el%wvmesh, el%simplex_map, &
-                     el%simplex_count, el%simplex_evals)
 
+!!$                !Try the Gaussian delta function
+!!$                Gaussian_delta = max(onebyroot2pi/1.0e-3_r64*&
+!!$                     exp(-0.5_r64*((ek - ekp + Omegas(iOmega))/1.0e-3_r64)**2), 1.0e-4_r64)
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ekp, el%chempot, crys%T))*overlap*Gaussian_delta/&
+!!$                     product(el%wvmesh)
+
+!!$                Gaussian_delta = max(onebyroot2pi/1.0e-3_r64*&
+!!$                     exp(-0.5_r64*((ek - ekp + Omegas(iOmega))/1.0e-3_r64)**2), 1.0e-5_r64)
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ekp, el%chempot, crys%T))*overlap*Gaussian_delta/product(el%wvmesh)
+!!$
+!!$                !Small q limit
+!!$                Gaussian_delta = max(onebyroot2pi/1.0e-2_r64*&
+!!$                     exp(-0.5_r64*((ek - ekp + Omegas(iOmega))/1.0e-2_r64)**2), 1.0e-5_r64)/&
+!!$                     product(el%wvmesh)
+!!$                
+!!$                if(abs(ek - ekp) < 1.0e-3) then
+!!$                   spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                        Fermi(ek, el%chempot, crys%T)*(1.0_r64 - Fermi(ek, el%chempot, crys%T))/kB/crys%T* &
+!!$                        (ekp - ek)*overlap*Gaussian_delta
+!!$                else
+!!$                   spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                        (Fermi(ek, el%chempot, crys%T) - &
+!!$                        Fermi(ekp, el%chempot, crys%T))*overlap*Gaussian_delta
+!!$                end  if
+                
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ekp, el%chempot, crys%T))*overlap* &
+!!$                     ((delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)) + &
+!!$                     (delta_fn_ptr(ekp + Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)))
+                
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ek + sign(1.0_r64, Omegas(iOmega))*Omegas(iOmega), &
+!!$                     el%chempot, crys%T))*overlap* &
+!!$                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)
+                
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ekp, el%chempot, crys%T))*overlap* &
+!!$                     delta_fn_ptr(ekp - sign(1.0_r64, Omegas(iOmega))*Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)
+
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ekp - Omegas(iOmega), el%chempot, crys%T) - &
+!!$                     Fermi(ekp, el%chempot, crys%T))*overlap* &
+!!$                     delta_fn_ptr(ekp - sign(1.0_r64, Omegas(iOmega))*Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)
+                
+!!$
+!!$                !better but still bad
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ek + Omegas(iOmega), el%chempot, crys%T))*overlap* &
+!!$                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)
+
+!!$                !This gives a perfectly odd function
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ek + Omegas(iOmega), el%chempot, crys%T))*overlap* &
+!!$                     (delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)) + &
+!!$                     (Fermi(ek, el%chempot, crys%T) - &
+!!$                     Fermi(ek - Omegas(iOmega), el%chempot, crys%T))*overlap* &
+!!$                     (delta_fn_ptr(ekp + Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals))
+                
+!!$                ![current] still bad
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ekp - Omegas(iOmega), el%chempot, crys%T) - &
+!!$                     Fermi(ekp, el%chempot, crys%T))*overlap* &
+!!$                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)
+!!$
+!!$                !bad
 !!$                spec_eps(iOmega) = spec_eps(iOmega) + &
 !!$                     Fermi(ekp, el%chempot, crys%T)* &
 !!$                     (1.0_r64 - Fermi(ekp - Omegas(iOmega), el%chempot, crys%T))/ &
@@ -353,116 +549,145 @@ contains
        end do
     end do
 
-    do iOmega = 2, nOmegas
+    do iOmega = 1, nOmegas
        !Recall that the resolvent is already normalized in the full wave vector mesh.
        !As such, the 1/product(el%wvmesh) is not needed in the expression below.
-       spec_eps(iOmega) = &
-            spec_eps(iOmega)*sign(1.0_r64, Omegas(iOmega))*el%spindeg/crys%volume
+!!$       spec_eps(iOmega) = &
+!!$            spec_eps(iOmega)*sign(1.0_r64, Omegas(iOmega))*el%spindeg/crys%volume
+
+       !DBG
+       spec_eps(iOmega) = spec_eps(iOmega)*el%spindeg/crys%volume
     end do
     !At this point [spec_eps] = nm^-3.eV^-1
 
+    !The negative sector
+    do iOmega = 1, nOmegas/2
+       spec_eps(iOmega) = -spec_eps(nOmegas + 1 - iOmega)
+    end do
+
+!!$    if(this_image() == 1) then
+!!$       print*, spec_eps(1:5)
+!!$       print*, spec_eps(nOmegas-4:nOmegas)
+!!$    end if
+   
     if(associated(delta_fn_ptr)) nullify(delta_fn_ptr)
   end subroutine spectral_head_polarizability_3d_qpath
 
-  subroutine spectral_head_polarizability_3d(spec_eps, Omegas, q_indvec, el, pcell_vol, T, tetrahedra)
-    !! Spectral head of the bare polarizability of the 3d Kohn-Sham system using
-    !! Eq. 16 of Shishkin and Kresse Phys. Rev. B 74, 035101 (2006).
-    !!
-    !! Here we calculate the diagonal in G-G' space. Moreover,
-    !! we use the approximation G.r -> 0.
-    !!
-    !! spec_eps Spectral head of the bare polarizability
-    !! Omega Energy of excitation in the electron gas
-    !! q_indvec Wave vector of excitation in the electron gas (0-based integer triplet)
-    !! el Electron data type
-    !! pcell_vol Primitive unit cell volume
-    !! T Temperature (K)
+  !subroutine check_conductivity_sumrule(omegas, Imeps)
+  real(r64) function en_plasma_cond_sumrule(omegas, Imeps)
+    real(r64), intent(in) :: omegas(:), Imeps(:)
 
-    real(r64), intent(in) :: Omegas(:), pcell_vol, T
-    integer(i64), intent(in) :: q_indvec(3)
-    type(electron), intent(in) :: el
-    real(r64), allocatable, intent(out) :: spec_eps(:)
-    logical, intent(in) :: tetrahedra
-    
-    !Locals
-    integer(i64) :: m, n, ik, ikp, ikp_window, iOmega, nOmegas, k_indvec(3), kp_indvec(3)
-    real(r64) :: overlap, ek, ekp, dOmega, delta, Omega_l, Omega_r
-    procedure(delta_fn), pointer :: delta_fn_ptr => null()
+    real(r64) :: aux
 
-    nOmegas = size(Omegas)
+    !call compsimps(omegas*Imeps, omegas(2) - omegas(1), aux)
+    call compsimps(omegas*Imeps, omegas(2) - omegas(1), aux)
 
-    dOmega = Omegas(2) - Omegas(1)
-    
-    allocate(spec_eps(nOmegas))
+    !print*, 'plasmon energy from conductivity sum-rule = ', sqrt(-aux/pi), ' eV'
 
-    !Associate delta function procedure pointer
-    delta_fn_ptr => get_delta_fn_pointer(tetrahedra)
-    
-    spec_eps = 0.0
-    do iOmega = 1, nOmegas
-       !Below, we will sum out m, n, and k
-       do m = 1, el%numbands
-          do ik = 1, el%nwv
-             ek = el%ens(ik, m)
-
-             !Apply energy window to initial electron
-             if(abs(ek - el%enref) > el%fsthick) cycle
-
-             !Calculate index vector of final electron: k' = k + q
-             k_indvec = nint(el%wavevecs(ik, :)*el%wvmesh)    
-             kp_indvec = modulo(k_indvec + q_indvec, el%wvmesh) !0-based index vector
-             
-             !Multiplex kp_indvec
-             ikp = mux_vector(kp_indvec, el%wvmesh, 0_i64)
-
-             !Check if final electron wave vector is within FBZ blocks
-             call binsearch(el%indexlist, ikp, ikp_window)
-             if(ikp_window < 0) cycle
-
-             do n = 1, el%numbands
-                ekp = el%ens(ikp_window, n)
-
-                !Apply energy window to final electron
-                if(abs(ekp - el%enref) > el%fsthick) cycle
-
-                !This is |U(k')U^\dagger(k)|_nm squared
-                !(Recall that U^\dagger(k) is the diagonalizer of the electronic hamiltonian.)
-                overlap = (abs(dot_product(el%evecs(ikp_window, n, :), el%evecs(ik, m, :))))**2
-
-                spec_eps(iOmega) = spec_eps(iOmega) + &
-                     (Fermi(ek, el%chempot, T) - &
-                     Fermi(ek + Omegas(iOmega) , el%chempot, T))*overlap* &
-                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
-                     el%wvmesh, el%simplex_map, &
-                     el%simplex_count, el%simplex_evals)
-
-                !!!DBG
-                !!Omega_l = Omegas(iOmega) - dOmega
-                !!Omega_r = Omegas(iOmega) + dOmega
-                !!
-                !!if(Omega_l < ekp - ek .and. ekp - ek < Omega_r) continue
-                !!
-                !!delta = finite_element(ekp - ek, &
-                !!     Omega_l, Omegas(iOmega), Omega_r)/dOmega
-                !!
-                !!spec_eps(iOmega) = spec_eps(iOmega) + &
-                !!     (Fermi(ek, el%chempot, T) - &
-                !!     Fermi(ek + Omegas(iOmega), el%chempot, T))*overlap*delta/product(el%wvmesh)
-             end do
-          end do
-       end do
-    end do
-
-    do iOmega = 1, nOmegas
-       !Recall that the resolvent is already normalized in the full wave vector mesh.
-       !As such, the 1/product(el%wvmesh) is not needed in the expression below.
-       spec_eps(iOmega) = &
-            spec_eps(iOmega)*sign(1.0_r64, Omegas(iOmega))*el%spindeg/pcell_vol
-    end do
-    !At this point [spec_eps] = nm^-3.eV^-1
-
-    if(associated(delta_fn_ptr)) nullify(delta_fn_ptr)
-  end subroutine spectral_head_polarizability_3d
+    en_plasma_cond_sumrule = sqrt(-aux/pi)
+    !print*, 'conductivity sum-rule = ', aux
+    !end subroutine check_conductivity_sumrule
+  end function en_plasma_cond_sumrule
+  
+!!$  subroutine spectral_head_polarizability_3d(spec_eps, Omegas, q_indvec, el, pcell_vol, T, tetrahedra)
+!!$    !! Spectral head of the bare polarizability of the 3d Kohn-Sham system using
+!!$    !! Eq. 16 of Shishkin and Kresse Phys. Rev. B 74, 035101 (2006).
+!!$    !!
+!!$    !! Here we calculate the diagonal in G-G' space. Moreover,
+!!$    !! we use the approximation G.r -> 0.
+!!$    !!
+!!$    !! spec_eps Spectral head of the bare polarizability
+!!$    !! Omega Energy of excitation in the electron gas
+!!$    !! q_indvec Wave vector of excitation in the electron gas (0-based integer triplet)
+!!$    !! el Electron data type
+!!$    !! pcell_vol Primitive unit cell volume
+!!$    !! T Temperature (K)
+!!$
+!!$    real(r64), intent(in) :: Omegas(:), pcell_vol, T
+!!$    integer(i64), intent(in) :: q_indvec(3)
+!!$    type(electron), intent(in) :: el
+!!$    real(r64), allocatable, intent(out) :: spec_eps(:)
+!!$    logical, intent(in) :: tetrahedra
+!!$    
+!!$    !Locals
+!!$    integer(i64) :: m, n, ik, ikp, ikp_window, iOmega, nOmegas, k_indvec(3), kp_indvec(3)
+!!$    real(r64) :: overlap, ek, ekp, dOmega, delta, Omega_l, Omega_r
+!!$    procedure(delta_fn), pointer :: delta_fn_ptr => null()
+!!$
+!!$    nOmegas = size(Omegas)
+!!$
+!!$    dOmega = Omegas(2) - Omegas(1)
+!!$    
+!!$    allocate(spec_eps(nOmegas))
+!!$
+!!$    !Associate delta function procedure pointer
+!!$    delta_fn_ptr => get_delta_fn_pointer(tetrahedra)
+!!$    
+!!$    spec_eps = 0.0
+!!$    do iOmega = 1, nOmegas
+!!$       !Below, we will sum out m, n, and k
+!!$       do m = 1, el%numbands
+!!$          do ik = 1, el%nwv
+!!$             ek = el%ens(ik, m)
+!!$
+!!$             !Apply energy window to initial electron
+!!$             if(abs(ek - el%enref) > el%fsthick) cycle
+!!$
+!!$             !Calculate index vector of final electron: k' = k + q
+!!$             k_indvec = nint(el%wavevecs(ik, :)*el%wvmesh)    
+!!$             kp_indvec = modulo(k_indvec + q_indvec, el%wvmesh) !0-based index vector
+!!$             
+!!$             !Multiplex kp_indvec
+!!$             ikp = mux_vector(kp_indvec, el%wvmesh, 0_i64)
+!!$
+!!$             !Check if final electron wave vector is within FBZ blocks
+!!$             call binsearch(el%indexlist, ikp, ikp_window)
+!!$             if(ikp_window < 0) cycle
+!!$
+!!$             do n = 1, el%numbands
+!!$                ekp = el%ens(ikp_window, n)
+!!$
+!!$                !Apply energy window to final electron
+!!$                if(abs(ekp - el%enref) > el%fsthick) cycle
+!!$
+!!$                !This is |U(k')U^\dagger(k)|_nm squared
+!!$                !(Recall that U^\dagger(k) is the diagonalizer of the electronic hamiltonian.)
+!!$                overlap = (abs(dot_product(el%evecs(ikp_window, n, :), el%evecs(ik, m, :))))**2
+!!$
+!!$                spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                     (Fermi(ek, el%chempot, T) - &
+!!$                     Fermi(ek + Omegas(iOmega) , el%chempot, T))*overlap* &
+!!$                     delta_fn_ptr(ekp - Omegas(iOmega), ik, m, &
+!!$                     el%wvmesh, el%simplex_map, &
+!!$                     el%simplex_count, el%simplex_evals)
+!!$
+!!$                !!!DBG
+!!$                !!Omega_l = Omegas(iOmega) - dOmega
+!!$                !!Omega_r = Omegas(iOmega) + dOmega
+!!$                !!
+!!$                !!if(Omega_l < ekp - ek .and. ekp - ek < Omega_r) continue
+!!$                !!
+!!$                !!delta = finite_element(ekp - ek, &
+!!$                !!     Omega_l, Omegas(iOmega), Omega_r)/dOmega
+!!$                !!
+!!$                !!spec_eps(iOmega) = spec_eps(iOmega) + &
+!!$                !!     (Fermi(ek, el%chempot, T) - &
+!!$                !!     Fermi(ek + Omegas(iOmega), el%chempot, T))*overlap*delta/product(el%wvmesh)
+!!$             end do
+!!$          end do
+!!$       end do
+!!$    end do
+!!$
+!!$    do iOmega = 1, nOmegas
+!!$       !Recall that the resolvent is already normalized in the full wave vector mesh.
+!!$       !As such, the 1/product(el%wvmesh) is not needed in the expression below.
+!!$       spec_eps(iOmega) = &
+!!$            spec_eps(iOmega)*sign(1.0_r64, Omegas(iOmega))*el%spindeg/pcell_vol
+!!$    end do
+!!$    !At this point [spec_eps] = nm^-3.eV^-1
+!!$
+!!$    if(associated(delta_fn_ptr)) nullify(delta_fn_ptr)
+!!$  end subroutine spectral_head_polarizability_3d
 
   !DEBUG/TEST
   subroutine calculate_RPA_dielectric_3d_G0_scratch(el, crys, num, wann)
@@ -479,10 +704,11 @@ contains
 
     !Locals
     real(r64), allocatable :: energylist(:), qlist(:, :), qmaglist(:)
-    real(r64) :: qcrys(3), zeroplus
+    real(r64) :: qcrys(3)!, zeroplus
     integer(i64) :: iq, iOmega, numomega, numq, &
          start, end, chunk, num_active_images, qxmesh
-    real(r64), allocatable :: spec_eps(:), Imeps(:), Reeps(:), Hilbert_weights(:, :)
+    real(r64), allocatable :: spec_eps(:), Imeps(:), Reeps(:), Hilbert_weights(:, :), &
+         plasma_dispersion(:)
     complex(r64), allocatable :: diel(:, :)
     character(len = 1024) :: filename
     real(r64) :: omega_plasma
@@ -491,7 +717,7 @@ contains
     !omega_plasma = 1.0e-9_r64*hbar*sqrt(el%conc_el/perm0/crys%epsiloninf/(0.267*me)) !eV
 
     !wGaN
-    omega_plasma = 1.0e-9_r64*hbar*sqrt(el%conc_el/perm0/crys%epsiloninf/(0.22_r64*me)) !eV
+    omega_plasma = 1.0e-9_r64*hbar*sqrt(el%conc_el/perm0/crys%epsiloninf/(0.259_r64*me)) !eV
         
     if(this_image() == 1) then
        print*, "plasmon energy = ", omega_plasma
@@ -500,18 +726,23 @@ contains
 
     !TEST
     !Material: Si
-    numq = 600!el%wvmesh(1)
-    qxmesh = 10000 !numq
+    numq = 60 !600!el%wvmesh(1)
+    !qxmesh = 600 !1000 !10000 !numq
+    qxmesh = numq
     !Create qlist in crystal coordinates
     allocate(qlist(numq, 3), qmaglist(numq))
     do iq = 1, numq
+       !qlist(iq, :) = [0.000000_r64, 0.000000_r64, 0.0_r64] + &
+       ![(iq - 1.0_r64)/qxmesh, (iq - 1.0_r64)/qxmesh, 0.0_r64]
        qlist(iq, :) = [0.000000_r64, 0.000000_r64, 0.0_r64] + &
-            [(iq - 1.0_r64)/qxmesh, (iq - 1.0_r64)/qxmesh, 0.0_r64]
+            [(iq - 1.0_r64)/qxmesh, 0.0_r64, 0.0_r64]
        !qlist(iq, :) = [(iq - 1.0_r64)/qxmesh - 0.5, (iq - 1.0_r64)/qxmesh - 0.5, 0.0_r64]
        !qmaglist(iq) = qdist(qlist(iq, :), crys%reclattvecs)
        qmaglist(iq) = twonorm(matmul(crys%reclattvecs, qlist(iq, :)))
     end do
     call sort(qmaglist)
+
+    allocate(plasma_dispersion(numq))
 
 !!$    numq = el%nwv_irred
 !!$    !Create qlist in crystal coordinates
@@ -532,12 +763,12 @@ contains
 !!$    end do
 
     !Create energy grid
-    numomega = 400
+    numomega = 601 !6 !5 !1001 !1001
     allocate(energylist(numomega))
-    call linspace(energylist, 0.0_r64, 1.0_r64, numomega)
-
+    call linspace(energylist, -0.5_r64, 0.5_r64, numomega)
+    
     !Small number
-    zeroplus = (energylist(2) - energylist(1))*1.0e-12
+    !zeroplus = (energylist(2) - energylist(1))*1.0e-12
     
     !Allocate diel_ik to hold maximum possible Omega
     allocate(diel(numq, numomega))
@@ -545,6 +776,8 @@ contains
 
     !Allocate polarizability
     allocate(spec_eps(numomega))
+
+    allocate(Imeps(numomega))
 
     !Allocate the Hilbert weights
     allocate(Hilbert_weights(numomega, numomega))
@@ -557,6 +790,7 @@ contains
        write(*, "(A, I10)") " #q-vecs/image <= ", chunk
     end if
 
+    plasma_dispersion = 0.0
     do iq = start, end !Over IBZ k points
        qcrys = qlist(iq, :) !crystal coordinates
 
@@ -579,8 +813,33 @@ contains
 
           !call head_polarizability_real_3d_T(Reeps, energylist, spec_eps, Hilbert_weights)
 
-          call hilbert_transform(Reeps, energylist, spec_eps)
-          call head_polarizability_imag_3d_T(Imeps, energylist, energylist, spec_eps)
+       !call hilbert_transform(Reeps, energylist, spec_eps)
+       !
+       !This does an interpolation
+       !call head_polarizability_imag_3d_T(Imeps, energylist, energylist, spec_eps)
+       !DBG: No need for interpolation for this test case where the energy list is the probe energy list
+       Imeps = -pi*spec_eps
+       !Imeps = pi*spec_eps
+       call hilbert_transform(-Imeps, Reeps)
+!!$
+!!$       !Test Hilbert transform
+!!$       Imeps = -energylist/(1 + 1.0e6*energylist**4)
+!!$       call hilbert_transform(-Imeps, Reeps)
+!!$       
+!!$       if(this_image() == 1) then
+!!$          print*, energylist
+!!$          print*, Imeps
+!!$          print*, Reeps
+!!$          call exit
+!!$       end if
+
+       !call check_conductivity_sumrule(energylist, Imeps)
+       plasma_dispersion(iq) = en_plasma_cond_sumrule(energylist, Imeps)
+       plasma_dispersion(iq) = plasma_dispersion(iq)/qmaglist(iq)**2/perm0*qe*1.0e9_r64
+
+       !Use this when I am computing Imeps directly and not getting it via spec_eps
+       !Imeps = spec_eps
+       !call hilbert_transform(Reeps, energylist, -pi*spec_eps)
           
           !Calculate RPA dielectric (diagonal in G-G' space)
 !!$          diel(iq, :) = 1.0_r64 - &
@@ -596,21 +855,29 @@ contains
 !!$               (real(eps) + oneI*pi*spec_eps)/perm0*qe*1.0e9_r64
 
        if(all(qcrys == 0.0_r64)) then
-          !DEBUG: This is not a generally computable limit since the plasmon
-          !energy expression requires a single effective mass.
-          !Just leaving it here for now to get the plasmon peak in the loss function.
-          diel(iq, 1:numomega) = 1.0_r64 - &
-               (omega_plasma/energylist(1:numomega))**2
+          diel(iq, :) = 1.0_r64 - &
+               (omega_plasma/energylist(:))**2
+!!$       else if(qmaglist(iq) < 1.0e-1) then
+!!$          !diel(iq, :) = crys%epsiloninf*(1.0_r64 + (crys%qTF/qmaglist(iq))**2)
+!!$
+!!$          do iomega = 1, numomega
+!!$             if(abs(energylist(iomega)) < 1.0e-3) then
+!!$                diel(iq, iomega) = crys%epsiloninf*(1.0_r64 + (crys%qTF/qmaglist(iq))**2)
+!!$             else
+!!$                diel(iq, iomega) = 1.0_r64 - &
+!!$                     (omega_plasma/energylist(iomega))**2
+!!$             end if
+!!$          end do
        else
-
           diel(iq, :) = crys%epsiloninf - &
                1.0_r64/qmaglist(iq)**2* &
                (Reeps + oneI*Imeps)/perm0*qe*1.0e9_r64
-
+          
+!!$
 !!$          diel(iq, :) = 1.0_r64 - &
 !!$               1.0_r64/qmaglist(iq)**2* &
 !!$               (Reeps + oneI*Imeps)/perm0/crys%epsiloninf*qe*1.0e9_r64
-
+!!$
 !!$          diel(iq, :) = 1.0_r64 - &
 !!$               1.0_r64/qmaglist(iq)**2* &
 !!$               (Reeps + oneI*Imeps)/perm0*qe*1.0e9_r64
@@ -618,6 +885,8 @@ contains
     end do
 
     call co_sum(diel)
+
+    call co_sum(plasma_dispersion)
 
     !Handle Omega = 0 case
     !Thomas-Fermi limit
@@ -627,6 +896,7 @@ contains
     !Print to file
     call write2file_rank2_real("RPA_dielectric_3D_G0_qpath", qlist)
     call write2file_rank1_real("RPA_dielectric_3D_G0_qmagpath", qmaglist)
+    call write2file_rank1_real("RPA_dielectric_3D_G0_plasma", plasma_dispersion)
     call write2file_rank1_real("RPA_dielectric_3D_G0_Omega", energylist)
     call write2file_rank2_real("RPA_dielectric_3D_G0_real", real(diel))
     call write2file_rank2_real("RPA_dielectric_3D_G0_imag", imag(diel))

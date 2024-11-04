@@ -17,10 +17,10 @@ program screening_comparison
   real(r64), allocatable :: el_ens_parabolic(:), qmags(:)
 
   !concentration and temperature
-  !real(r64), parameter :: conc = 0.39054925E+19 !cm^-3
+  real(r64), parameter :: conc = 0.39115390E+19 !0.39054925E+19 !cm^-3
   !real(r64), parameter :: conc = 4.75769e18 !3.7095e19 !cm^-3
   !real(r64), parameter :: conc = 3.63325e19 !cm^-3
-  real(r64), parameter :: conc = 0.54269133E+20 !0.82378518E+20 !3.70938e19 !cm^-3
+  !real(r64), parameter :: conc = 0.87013305E+19 !0.53003257E+20 !cm^-3
   !real(r64), parameter :: conc = 0.74965325E+20 !cm^-3
   real(r64), parameter :: T = 300.0 !1.0 !K
 
@@ -28,9 +28,9 @@ program screening_comparison
   !real(r64), parameter :: epsiloninf = 13.0619569 !From dfpt
   
   !wGaN
-  real(r64), parameter :: m_eff = 0.259*me !0.2*me
+  real(r64), parameter :: m_eff = 0.22*me !0.259*me !0.259*me !0.2*me
   !real(r64), parameter :: m_eff = 0.22*me
-  real(r64), parameter :: epsiloninf = 5.8967622666666664 !5.8968
+  real(r64), parameter :: epsiloninf = 5.8968
   !real(r64), parameter :: epsilon0 = ?
   
   !GaAs
