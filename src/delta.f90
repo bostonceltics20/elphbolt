@@ -622,7 +622,7 @@ contains
     end do
   end subroutine form_tetrahedra_3d
 
-  subroutine fill_tetrahedra_3d(tetra, evals, tetra_evals, wann, crys, wvmesh)
+  subroutine fill_tetrahedra_3d(tetra, evals, tetra_evals, wann, crys, wvmesh, scissor)
     !! Populate the (sorted along the vertices) eigenvalues on all the vertices of the tetrahedra
     !!
     !! tetra List of the tetrahedra vertices
@@ -638,6 +638,7 @@ contains
     type(wannier), intent(in), optional :: wann
     type(crystal), intent(in), optional :: crys
     integer(i64), intent(in), optional :: wvmesh(3)
+    real(r64), intent(in), optional :: scissor(:)
 
     !Locals
     integer(i64) :: iv, it, ib, numbands, aux, numtetra, k_intvec(3)
@@ -662,7 +663,7 @@ contains
              call demux_vector(-aux, k_intvec, wvmesh, 1_i64)
              k_frac(1, :) = real(k_intvec, r64)/wvmesh
              
-             call wann%el_wann(crys, 1_i64, k_frac, energies)
+             call wann%el_wann(crys, 1_i64, k_frac, energies, scissor = scissor)
 
              tetra_evals(it, :, iv) = energies(1, :)
           else !Use pre-calculated eigenvalue
@@ -790,7 +791,7 @@ contains
     end do
   end subroutine form_triangles
 
-  subroutine fill_triangles(triang, evals, triang_evals, wann, crys, wvmesh)
+  subroutine fill_triangles(triang, evals, triang_evals, wann, crys, wvmesh, scissor)
     !! Populate the (sorted along the vertices) eigenvalues on all the vertices of the triangles
     !!
     !! triang List of the triangle vertices
@@ -806,6 +807,7 @@ contains
     type(wannier), intent(in), optional :: wann
     type(crystal), intent(in), optional :: crys
     integer(i64), intent(in), optional :: wvmesh(3)
+    real(r64), intent(in), optional :: scissor(:)
 
     !Local variables
     integer(i64) :: iv, it, ib, numbands, aux, numtriangs, k_intvec(3)
@@ -828,7 +830,7 @@ contains
              call demux_vector(-aux, k_intvec, wvmesh, 1_i64)
              k_frac(1, :) = real(k_intvec, r64)/wvmesh
 
-             call wann%el_wann(crys, 1_i64, k_frac, energies)
+             call wann%el_wann(crys, 1_i64, k_frac, energies, scissor = scissor)
 
              triang_evals(it, :, iv) = energies(1, :)
           else !Use pre-calculated eigenvalue

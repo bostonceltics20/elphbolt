@@ -585,14 +585,14 @@ contains
             self%simplicial_complex, self%simplex_count, &
             self%simplex_map, .true., self%indexlist)
        call fill_tetrahedra_3d(self%simplicial_complex, self%ens, self%simplex_evals, &
-            wann, crys, self%wvmesh)
+            wann, crys, self%wvmesh, self%scissor)
     else
        call print_message("Calculating electron mesh triangles...")
        call form_triangles(self%nwv, self%wvmesh, &
             self%simplicial_complex, self%simplex_count, &
             self%simplex_map, .true., self%indexlist)
        call fill_triangles(self%simplicial_complex, self%ens, self%simplex_evals, &
-            wann, crys, self%wvmesh)
+            wann, crys, self%wvmesh, self%scissor)
     end if
   end subroutine calculate_electrons
 
