@@ -230,8 +230,8 @@ contains
     el_en_num = 100
     ph_mfp_npts = 100
     ph_abs_q_npts = 100
-    W_OTF = .true.
-    Y_OTF = .true.
+    W_OTF = .false.
+    Y_OTF = .false.
     solve_bulk = .true.
     solve_nano = .false.
     read(1, nml = numerics)

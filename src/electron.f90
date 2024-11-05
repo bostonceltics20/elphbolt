@@ -25,8 +25,8 @@ module electron_module
   use wannier_module, only: wannier
   use crystal_module, only: crystal, calculate_wavevectors_full
   use symmetry_module, only: symmetry, find_irred_wedge, create_fbz2ibz_map
-  use delta, only: form_tetrahedra_3d, fill_tetrahedra_3d, fill_tetrahedra_3d_new, form_triangles, &
-       fill_triangles
+  use delta, only: form_tetrahedra_3d, fill_tetrahedra_3d, &
+       form_triangles, fill_triangles
   
   implicit none
 
@@ -584,9 +584,8 @@ contains
        call form_tetrahedra_3d(self%nwv, self%wvmesh, &
             self%simplicial_complex, self%simplex_count, &
             self%simplex_map, .true., self%indexlist)
-       ! call fill_tetrahedra_3d(self%simplicial_complex, self%ens, self%simplex_evals)
-       call fill_tetrahedra_3d_new(wann, crys, self%wvmesh, &             ! --> here's the fermi-window adjusted call
-       	    self%simplicial_complex, self%ens, self%simplex_evals)
+       call fill_tetrahedra_3d(self%simplicial_complex, self%ens, self%simplex_evals, &
+            wann, crys, self%wvmesh)
     else
        call print_message("Calculating electron mesh triangles...")
        call form_triangles(self%nwv, self%wvmesh, &

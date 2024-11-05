@@ -29,7 +29,7 @@ module delta
   public form_tetrahedra_3d, fill_tetrahedra_3d, &
        form_triangles, fill_triangles, real_tetra, &
        delta_fn, get_delta_fn_pointer, &
-       delta_fn_triang, delta_fn_tetra, fill_tetrahedra_3d_new
+       delta_fn_triang, delta_fn_tetra
 
   abstract interface
      pure real(r64) function delta_fn(e, ik, ib, mesh, map, count, evals)
@@ -586,18 +586,24 @@ contains
              kk = scvol_vertices(aux,3)
              aux = mux_vector([ii, jj, kk], mesh, 1_i64)
              tmp = aux !Guaranteed to be > 0
-            ! If energy-restricted blocks are being used, find the index in indexlist
-	    ! The updated snippet keeps track of vertices whose eigenvalues lie outside the chosen window around fermi energy
-	    if(blocks) then
-		call binsearch(indexlist, aux, tmp)    ! Binary search in indexlist
-		if(tmp < 0) then
-		    tetra(count, tl) = -aux            ! If vertex is outside Fermi window, save negative index (for the exceptional vertices)
-		else
-		    tetra(count, tl) = tmp             ! Save the index from indexlist
+             !If energy-restricted blocks are being used, find the index in indexlist
+             !Keep track of vertices whose eigenvalues lie outside the chosen Fermi window
+             !by saving the index as a negative number.
+             if(blocks) then !In general, non-contiguous sectors of BZ
+                ! Binary search in indexlist
+		call binsearch(indexlist, aux, tmp)
+                if(tmp < 0) then
+                   !If vertex is outside Fermi window, save negative index
+                   tetra(count, tl) = -aux
+                else
+                   !Save the index from indexlist
+                   tetra(count, tl) = tmp
 		end if
-	    else
-	    	tetra(count, tl) = aux                 ! Save the multiplexed index
-	    end if
+             else !Entire BZ
+                !Save the multiplexed index
+	    	tetra(count, tl) = aux
+             end if
+
              if(tmp > 0) then
                 !Save the mapping of a wave vector index to a (tetrahedron, vertex)
                 tetracount(tmp) = tetracount(tmp) + 1
@@ -609,94 +615,50 @@ contains
        end do
     end do
   end subroutine form_tetrahedra_3d
-
-  subroutine fill_tetrahedra_3d(tetra, evals, tetra_evals)
+  
+  subroutine fill_tetrahedra_3d(tetra, evals, tetra_evals, wann, crys, wvmesh)
     !! Populate the (sorted along the vertices) eigenvalues on all the vertices of the tetrahedra
     !!
     !! tetra List of the tetrahedra vertices
     !! evals List of eigenvalues 
     !! tetra_evals Tetrahedra populated with the eigenvalues
+    !! wann Wannier data type
+    !! crys Crystal data type
+    !! wvmesh Wave vector mesh
 
-    integer(i64), intent(in) :: tetra(:,:)
-    real(r64), intent(in) :: evals(:,:)
-    real(r64), allocatable, intent(out) :: tetra_evals(:,:,:)
+    integer(i64), intent(in) :: tetra(:, :)
+    real(r64), intent(in) :: evals(:, :)
+    real(r64), allocatable, intent(out) :: tetra_evals(:, :, :)
+    type(wannier), intent(in), optional :: wann
+    type(crystal), intent(in), optional :: crys
+    integer(i64), intent(in), optional :: wvmesh(3)
 
-    !Local variables
-    integer(i64) :: iv, it, ib, numbands, aux, numtetra
-
-    numtetra = size(tetra(:, 1))
-    numbands = size(evals(1, :))
-
-    allocate(tetra_evals(numtetra, numbands, 4))
-
-    !Note: Eigenvalues outside the transport active window is taken to be zero.
-    !      As such, close to the transport window boundary, this method is inaccurate.
-    !      A large enough transport window must be chosen to obtain accurate transport coefficients.
-    tetra_evals(:,:,:) = 0.0_r64
-    
-    do it = 1, numtetra !Run over tetrahedra
-       !do ib = 1, numbands !Run over bands
-       do iv = 1, 4 !Run over vertices
-          aux = tetra(it, iv)
-          if(aux > 0) then !Only eigenvalues inside transport active region
-             tetra_evals(it, :, iv) = evals(aux, :)
-          end if
-       end do
-    end do
-    
-    do it = 1, numtetra
-       do ib = 1, numbands
-          call sort(tetra_evals(it, ib, :))
-       end do
-    end do
-  end subroutine fill_tetrahedra_3d
-  
-subroutine fill_tetrahedra_3d_new(wann, crys, wvmesh, tetra, evals, tetra_evals)
-! the updated fill_tetrahedra_3d to compute eigenvalues of tetrahedral vertices on-the-fly
-
-    type(wannier), intent(in) :: wann
-    type(crystal), intent(in) :: crys
-    integer(i64), intent(in) :: tetra(:,:)
-    real(r64), intent(in) :: evals(:,:)
-    integer(i64), intent(in) :: wvmesh(3)
-    real(r64), allocatable, intent(out) :: tetra_evals(:,:,:)
+    !Locals
     integer(i64) :: iv, it, ib, numbands, aux, numtetra
     integer(i64) :: k_intvec(3)
-    real(r64), allocatable :: energies(:,:)
-    real(r64) :: k_frac(1,3)
+    real(r64), allocatable :: energies(:, :)
+    real(r64) :: k_frac(1, 3)
 
     ! Calculate dimensions
     numtetra = size(tetra, 1)
     numbands = size(evals, 2)
-	
-    ! a few prints included for testing purposes
-    !print *, "Number of tetrahedra (numtetra) =", numtetra
-    !print *, "Number of bands (numbands) =", numbands
-    !print *, "tetra shape:", shape(tetra)
-    !print *, "evals shape:", shape(evals)
-    !print *, "tetra_evals shape:", shape(tetra_evals)
 
-    ! Allocate arrays with correct dimensions
-   allocate(tetra_evals(numtetra, numbands, 4))
-   allocate(energies(1, wann%numwannbands))
-
-    ! Initialize tetra_evals and energies
-    tetra_evals(:, :, :) = 0.0_r64
-    energies(:, :) = 0.0_r64
+    ! Allocations
+    allocate(tetra_evals(numtetra, numbands, 4))
+    if(present(wann)) allocate(energies(1, numbands))
 
     ! Loop over all tetrahedra and vertices
     do it = 1, numtetra
        do iv = 1, 4
           aux = tetra(it, iv)
-          
-          !print *, "Accessing tetra array with index it=", it, ", iv=", iv
-	  !print *, "aux = ", aux
 
-          if(aux < 0) then
+          if(aux < 0) then !Only possible in the electron case
              ! Vertex outside Fermi window, calculate on-the-fly
-             call demux_vector(-aux, k_intvec, wvmesh, 1_i64)     
+             call demux_vector(-aux, k_intvec, wvmesh, 1_i64)
              k_frac(1, :) = real(k_intvec, r64)/wvmesh
+             
              call wann%el_wann(crys, 1_i64, k_frac, energies)
+
              tetra_evals(it, :, iv) = energies(1, :)
           else
              ! Use pre-calculated eigenvalue
@@ -704,14 +666,14 @@ subroutine fill_tetrahedra_3d_new(wann, crys, wvmesh, tetra, evals, tetra_evals)
           end if
        end do
     end do
-    
-    do it = 1, numtetra	 	! Sort eigenvalues for each tetrahedron vertex
+
+    ! Sort eigenvalues for each tetrahedron vertex
+    do it = 1, numtetra	 	
        do ib = 1, numbands
           call sort(tetra_evals(it, ib, :))
        end do
     end do
-    deallocate(energies)
-end subroutine fill_tetrahedra_3d_new
+  end subroutine fill_tetrahedra_3d
 
   subroutine form_triangles(nk, mesh, triang, triangcount, triangmap, &
        blocks, indexlist)
