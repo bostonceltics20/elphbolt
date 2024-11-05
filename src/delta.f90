@@ -535,7 +535,7 @@ contains
     tetracount(:) = 0
     tetramap(:,:,:) = 0
     count = 1 !tetrahedron counter
-    
+
     do ik = 1, nk !Run over all wave vectors in FBZ
        if(blocks) then !For energy window restricted FBZ
           call demux_vector(indexlist(ik), ijk, mesh, 1_i64)
@@ -587,23 +587,29 @@ contains
              aux = mux_vector([ii, jj, kk], mesh, 1_i64)
              tmp = aux !Guaranteed to be > 0
              !If energy-restricted blocks are being used, find the index in indexlist
-             !Keep track of vertices whose eigenvalues lie outside the chosen Fermi window
-             !by saving the index as a negative number.
+
+             if(blocks) then
+             end if
+             
              if(blocks) then !In general, non-contiguous sectors of BZ
-                ! Binary search in indexlist
-		call binsearch(indexlist, aux, tmp)
+                !Binary search in indexlist
+                call binsearch(indexlist, aux, tmp)
+                
+                !Keep track of vertices whose eigenvalues lie outside the chosen Fermi window
+                !by saving the index as a negative number.
                 if(tmp < 0) then
                    !If vertex is outside Fermi window, save negative index
                    tetra(count, tl) = -aux
+                   
                 else
                    !Save the index from indexlist
                    tetra(count, tl) = tmp
-		end if
+                end if
              else !Entire BZ
                 !Save the multiplexed index
-	    	tetra(count, tl) = aux
+                tetra(count, tl) = aux
              end if
-
+             
              if(tmp > 0) then
                 !Save the mapping of a wave vector index to a (tetrahedron, vertex)
                 tetracount(tmp) = tetracount(tmp) + 1
@@ -615,7 +621,7 @@ contains
        end do
     end do
   end subroutine form_tetrahedra_3d
-  
+
   subroutine fill_tetrahedra_3d(tetra, evals, tetra_evals, wann, crys, wvmesh)
     !! Populate the (sorted along the vertices) eigenvalues on all the vertices of the tetrahedra
     !!
@@ -634,8 +640,7 @@ contains
     integer(i64), intent(in), optional :: wvmesh(3)
 
     !Locals
-    integer(i64) :: iv, it, ib, numbands, aux, numtetra
-    integer(i64) :: k_intvec(3)
+    integer(i64) :: iv, it, ib, numbands, aux, numtetra, k_intvec(3)
     real(r64), allocatable :: energies(:, :)
     real(r64) :: k_frac(1, 3)
 
@@ -653,15 +658,14 @@ contains
           aux = tetra(it, iv)
 
           if(aux < 0) then !Only possible in the electron case
-             ! Vertex outside Fermi window, calculate on-the-fly
+             ! Vertex outside Fermi window, calculate eigenvalues on-the-fly
              call demux_vector(-aux, k_intvec, wvmesh, 1_i64)
              k_frac(1, :) = real(k_intvec, r64)/wvmesh
              
              call wann%el_wann(crys, 1_i64, k_frac, energies)
 
              tetra_evals(it, :, iv) = energies(1, :)
-          else
-             ! Use pre-calculated eigenvalue
+          else !Use pre-calculated eigenvalue
              tetra_evals(it, :, iv) = evals(aux, :)
           end if
        end do
@@ -761,6 +765,16 @@ contains
              if(blocks) then
                 !Which point in indexlist does aux correspond to?
                 call binsearch(indexlist, aux, tmp) !tmp < 0 if search fails.
+
+                !Keep track of vertices whose eigenvalues lie outside the chosen Fermi window
+                !by saving the index as a negative number.
+                if(tmp < 0) then
+                   !If vertex is outside Fermi window, save negative index
+                   triang(count, tl) = -aux
+                else
+                   !Save the index from indexlist
+                   triang(count, tl) = tmp
+		end if
              end if
              triang(count, tl) = tmp
 
@@ -776,35 +790,48 @@ contains
     end do
   end subroutine form_triangles
 
-  subroutine fill_triangles(triang, evals, triang_evals)
+  subroutine fill_triangles(triang, evals, triang_evals, wann, crys, wvmesh)
     !! Populate the (sorted along the vertices) eigenvalues on all the vertices of the triangles
     !!
     !! triang List of the triangle vertices
     !! evals List of eigenvalues 
     !! triang_evals Triangles populated with the eigenvalues
+    !! wann Wannier data type
+    !! crys Crystal data type
+    !! wvmesh Wave vector mesh
 
-    integer(i64), intent(in) :: triang(:,:)
-    real(r64), intent(in) :: evals(:,:)
-    real(r64), allocatable, intent(out) :: triang_evals(:,:,:)
+    integer(i64), intent(in) :: triang(:, :)
+    real(r64), intent(in) :: evals(:, :)
+    real(r64), allocatable, intent(out) :: triang_evals(:, :, :)
+    type(wannier), intent(in), optional :: wann
+    type(crystal), intent(in), optional :: crys
+    integer(i64), intent(in), optional :: wvmesh(3)
 
     !Local variables
-    integer(i64) :: iv, it, ib, numbands, aux, numtriangs, numvertices
+    integer(i64) :: iv, it, ib, numbands, aux, numtriangs, k_intvec(3)
+    real(r64), allocatable :: energies(:, :)
+    real(r64) :: k_frac(1, 3)
 
     numtriangs = size(triang(:, 1))
     numbands = size(evals(1, :))
-    numvertices = 3
 
-    allocate(triang_evals(numtriangs, numbands, numvertices))
-
-    !Note: Eigenvalues outside the transport active window is taken to be zero.
-    !      As such, close to the transport window boundary, this method is inaccurate.
-    !      A large enough transport window must be chosen to obtain accurate transport coefficients.
-    triang_evals(:,:,:) = 0.0_r64
+    !Allocations
+    allocate(triang_evals(numtriangs, numbands, 3))
+    if(present(wann)) allocate(energies(1, numbands))
     
     do it = 1, numtriangs !Run over triangles
-       do iv = 1, numvertices !Run over vertices
+       do iv = 1, 3 !Run over vertices
           aux = triang(it, iv)
-          if(aux > 0) then !Only eigenvalues inside transport active region
+
+          if(aux < 0) then !Only possible in the electron case
+             ! Vertex outside Fermi window, calculate eigenvalues on-the-fly
+             call demux_vector(-aux, k_intvec, wvmesh, 1_i64)
+             k_frac(1, :) = real(k_intvec, r64)/wvmesh
+
+             call wann%el_wann(crys, 1_i64, k_frac, energies)
+
+             triang_evals(it, :, iv) = energies(1, :)
+          else !Use pre-calculated eigenvalue
              triang_evals(it, :, iv) = evals(aux, :)
           end if
        end do

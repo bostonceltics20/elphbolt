@@ -591,7 +591,8 @@ contains
        call form_triangles(self%nwv, self%wvmesh, &
             self%simplicial_complex, self%simplex_count, &
             self%simplex_map, .true., self%indexlist)
-       call fill_triangles(self%simplicial_complex, self%ens, self%simplex_evals)
+       call fill_triangles(self%simplicial_complex, self%ens, self%simplex_evals, &
+            wann, crys, self%wvmesh)
     end if
   end subroutine calculate_electrons
 
