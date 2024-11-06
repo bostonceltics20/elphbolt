@@ -7,7 +7,8 @@ module screening_module
   use numerics_module, only: numerics
   use misc, only: linspace, mux_vector, binsearch, Fermi, print_message, &
        compsimps, twonorm, write2file_rank2_real, write2file_rank1_real, &
-       distribute_points, sort, qdist, operator(.umklapp.), Bose
+       distribute_points, sort, qdist, operator(.umklapp.), Bose, &
+       hilbert_transform
   use wannier_module, only: wannier
   use delta, only: delta_fn, get_delta_fn_pointer
 

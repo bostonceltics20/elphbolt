@@ -22,7 +22,7 @@ module misc
 #endif
   
   use precision, only: r128, r64, i64
-  use params, only: kB, twopi
+  use params, only: kB, twopi, pi
   
   implicit none
   
