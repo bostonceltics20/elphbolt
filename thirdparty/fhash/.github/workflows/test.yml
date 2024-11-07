@@ -1,0 +1,84 @@
+name: fpm test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        toolchain:
+          - {compiler: gcc, version: 10}
+        include:
+          - os: ubuntu-latest
+            toolchain: {compiler: intel, version: '2023.1'}
+          - os: ubuntu-latest
+            toolchain: {compiler: gcc, version: 12}
+
+    steps:
+      - uses: awvwgk/setup-fortran@v1
+        id: setup-fortran
+        with:
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
+
+      - run: ${{ env.FC }} --version
+        env:
+          FC: ${{ steps.setup-fortran.outputs.fc }}
+      
+      - name: Install fpm
+        uses: fortran-lang/setup-fpm@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Run tests and demo programs (debug)
+        run: |
+          fpm test
+          fpm run *-demo
+
+      - name: Run tests and demo programs (release)
+        run: |
+          fpm test --profile release
+          fpm run *-demo --profile release
+
+
+  gfortran-windows-msys2-mingw64:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v1
+
+    - name: Setup MinGW (MSYS2)
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: false
+        install: >-
+          git
+          wget
+          mingw-w64-x86_64-gcc-fortran
+
+    - name: Install fpm
+      shell: msys2 {0}
+      run: |
+        wget https://github.com/awvwgk/mingw-w64-fpm-pkgbuild/releases/download/current/mingw-w64-x86_64-fpm-0.2.0-1-any.pkg.tar.zst
+        pacman -U --noconfirm mingw-w64-x86_64-fpm-*-any.pkg.tar.zst
+
+    - name: Run tests and demo programs (debug)
+      shell: msys2 {0}
+      run: |
+        gfortran --version
+        fpm test
+        fpm run *-demo
+
+    - name: Run tests and demo programs (release)
+      shell: msys2 {0}
+      run: |
+        gfortran --version
+        fpm test --profile release
+        fpm run *-demo --profile release
