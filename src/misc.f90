@@ -1679,11 +1679,11 @@ contains
      Hfx(nfx) = 0.0_r64
     
      ! Both Hfx and fx follow 1-indexing system unlike the paper
-     do k = 1, nfx-1      ! Run over the internal points
+     do k = 1, nfx-2      ! Run over the internal points
         term2 = 0.0_r64  ! 2nd term in Bilato Eq. 4
         term3 = 0.0_r64  ! 3rd term in Bilato Eq. 4
         
-        do n = 1, nfx-1-k  ! Partial sum over internal points
+        do n = 1, nfx-2-k  ! Partial sum over internal points
            b = log((n + 1.0_r64)/n)
            term2 = term2 - (1.0_r64 - (n + 1.0_r64)*b)*fx(k + n + 1) + &
                           (1.0_r64 - n*b)*fx(k + n + 2)
