@@ -16,8 +16,12 @@ source-dir="src"
 [dependencies]
 #Pull from github
 #testify = { git = "git@github.com:nakib/testify.git" }
+#Use local copy
 testify = {path = "thirdparty/testify"}
-fhash = { git = "https://github.com/LKedward/fhash.git" }
+#Pull from github
+#fhash = {git = "https://github.com/LKedward/fhash.git"}
+#Use local copy
+fhash = {path = "thirdparty/fhash"}
 
 #Use local copy from thirdparty directory
 spglib = {path = "thirdparty/spglib"}
