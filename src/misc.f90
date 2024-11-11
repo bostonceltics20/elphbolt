@@ -1655,8 +1655,10 @@ contains
   end subroutine subtitle
    
   subroutine Hilbert_transform(fx, Hfx)
-     !! Does Hilbert tranform of spectral head of bare polarizability 
-     !! Ref - EQ (4)3, R. Balito et. al. 
+     !! Does Hilbert tranform for a given function 
+     !! Ref - EQ (4)3, R. Balito et. al.
+     !! - An algorithm for fast Hilbert transform of real
+     !!   function
      !!
      !! fx is the function 
      !! Hfx is the Hilbert transform of the function
@@ -1666,9 +1668,7 @@ contains
      real(r64), intent(in) :: fx(:)
 
      ! Local variables
-     integer :: nfx
-    
-     integer :: n, k
+     integer :: n, k, nfx
      real(r64) :: term2, term3, b
 
      nfx = size(fx)
@@ -1679,17 +1679,17 @@ contains
      Hfx(nfx) = 0.0_r64
     
      ! Both Hfx and fx follow 1-indexing system unlike the paper
-     do k = 1, nfx-2      ! Run over the internal points
+     do k = 1, nfx - 2      ! Run over the internal points
         term2 = 0.0_r64  ! 2nd term in Bilato Eq. 4
         term3 = 0.0_r64  ! 3rd term in Bilato Eq. 4
         
-        do n = 1, nfx-2-k  ! Partial sum over internal points
+        do n = 1, nfx - 2 - k  ! Partial sum over internal points
            b = log((n + 1.0_r64)/n)
            term2 = term2 - (1.0_r64 - (n + 1.0_r64)*b)*fx(k + n + 1) + &
                           (1.0_r64 - n*b)*fx(k + n + 2)
         end do
 
-        do n = 1, k-1      ! Partial sum over internal points
+        do n = 1, k - 1      ! Partial sum over internal points
            b = log((n + 1.0_r64)/n)
            term3 = term3 + (1.0_r64 - (n + 1.0_r64)*b)*fx(k - n + 1) - &
                          (1.0_r64 - n*b)*fx(k - n)
