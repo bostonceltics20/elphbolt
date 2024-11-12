@@ -1658,7 +1658,7 @@ contains
      !! Does Hilbert tranform for a given function 
      !! Ref - EQ (4)3, R. Balito et. al.
      !! - An algorithm for fast Hilbert transform of real
-     !!   function
+     !!   functions
      !!
      !! fx is the function 
      !! Hfx is the Hilbert transform of the function
