@@ -7,7 +7,8 @@ module screening_module
   use numerics_module, only: numerics
   use misc, only: linspace, mux_vector, binsearch, Fermi, print_message, &
        compsimps, twonorm, write2file_rank2_real, write2file_rank1_real, &
-       distribute_points, sort, qdist, operator(.umklapp.), Bose
+       distribute_points, sort, qdist, operator(.umklapp.), Bose, &
+       Hilbert_transform
   use wannier_module, only: wannier
   use delta, only: delta_fn, get_delta_fn_pointer
 
@@ -57,53 +58,6 @@ contains
        end if
     end if
   end subroutine calculate_qTF
-
-  subroutine Hilbert_transform(f, Hf)
-    !! Does Hilbert tranform of spectral head of bare polarizability 
-    !! Ref - EQ (4), R. Balito et. al. 
-    !!
-    !! Hf H.f(x), the Hilbert transform
-    !! f(x) the function
-
-    real(r64), intent(in) :: f(:)
-    real(r64), allocatable, intent(out) :: Hf(:)
-
-    ! Locals
-    real(r64) :: term2, term3, term1, b
-    integer(i64) :: nxs, k, n
-
-    !Number points on domain grid
-    nxs = size(f)
-
-    allocate(Hf(nxs))
-
-    !Assume that f vanishes at the edges, and Hf also
-    Hf(1) = 0.0_r64
-    Hf(nxs) = 0.0_r64
-    
-    do k = 2, nxs - 1 !Run over the internal points
-       term2 = 0.0_r64 !2nd term in Bilato Eq. 4
-       term3 = 0.0_r64 !3rd term in Bilato Eq. 4
-       
-       do n = 2, nxs - 1 - k !Partial sum over internal points
-          b = log((n + 1.0_r64)/n)
-          
-          term2 = term2 - (1.0_r64 - (n + 1.0_r64)*b)*f(k + n) + &
-               (1.0_r64 - n*b)*f(k + n + 1)
-       end do
-
-       do n = 2, k - 2 !Partial sum over internal points
-          b = log((n + 1.0_r64)/n)
-          
-          term3 = term3 + (1.0_r64 - (n + 1.0_r64)*b)*f(k - n) - &
-               (1.0_r64 - n*b)*f(k - n - 1)
-       end do
-
-       term1 = f(k + 1) - f(k - 1)
-       
-       Hf(k) = (-1.0_r64/pi)*(term1 + term2 + term3)
-    end do
-  end subroutine Hilbert_transform
 
 !!$  subroutine head_polarizability_real_3d_T(Reeps_T, Omegas, spec_eps_T, Hilbert_weights_T)
 !!$    !! Head of the bare real polarizability of the 3d Kohn-Sham system using
