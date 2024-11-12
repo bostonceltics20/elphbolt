@@ -22,7 +22,7 @@ module misc
 #endif
   
   use precision, only: r128, r64, i64
-  use params, only: kB, twopi
+  use params, only: kB, twopi, pi
   
   implicit none
   
@@ -1653,4 +1653,49 @@ contains
     string2print(75 - length + 1 : 75) = text
     if(this_image() == 1) write(*,'(A75)') string2print
   end subroutine subtitle
+   
+  subroutine Hilbert_transform(fx, Hfx)
+     !! Does Hilbert tranform for a given function 
+     !! Ref - EQ (4)3, R. Balito et. al.
+     !! - An algorithm for fast Hilbert transform of real
+     !!   functions
+     !!
+     !! fx is the function 
+     !! Hfx is the Hilbert transform of the function
+     !! 
+
+     real(r64), allocatable, intent(out) :: Hfx(:)
+     real(r64), intent(in) :: fx(:)
+
+     ! Local variables
+     integer :: n, k, nfx
+     real(r64) :: term2, term3, b
+
+     nfx = size(fx)
+     allocate(Hfx(nfx))
+
+     ! Hilbert function is zero at the edges
+     Hfx(1) = 0.0_r64
+     Hfx(nfx) = 0.0_r64
+    
+     ! Both Hfx and fx follow 1-indexing system unlike the paper
+     do k = 1, nfx - 2      ! Run over the internal points
+        term2 = 0.0_r64  ! 2nd term in Bilato Eq. 4
+        term3 = 0.0_r64  ! 3rd term in Bilato Eq. 4
+        
+        do n = 1, nfx - 2 - k  ! Partial sum over internal points
+           b = log((n + 1.0_r64)/n)
+           term2 = term2 - (1.0_r64 - (n + 1.0_r64)*b)*fx(k + n + 1) + &
+                          (1.0_r64 - n*b)*fx(k + n + 2)
+        end do
+
+        do n = 1, k - 1      ! Partial sum over internal points
+           b = log((n + 1.0_r64)/n)
+           term3 = term3 + (1.0_r64 - (n + 1.0_r64)*b)*fx(k - n + 1) - &
+                         (1.0_r64 - n*b)*fx(k - n)
+        end do
+                
+        Hfx(k + 1) = (-1.0_r64/pi)*(fx(k + 2) - fx(k) + term2 + term3)
+     end do
+  end subroutine Hilbert_transform
 end module misc
