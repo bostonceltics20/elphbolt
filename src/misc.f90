@@ -1659,7 +1659,6 @@ contains
      !! Ref - EQ (4)3, R. Balito et. al.
      !! "An algorithm for fast Hilbert transform of real
      !! functions"
-     !!
 
      real(r64), intent(in) :: fx(:)
      real(r64), allocatable, intent(out) :: Hfx(:)
