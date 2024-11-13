@@ -409,6 +409,6 @@ program test_misc
      ! Hfx2 is actual hilbert transform of fx2, is an even function
      pure elemental real(r64) function hfx2(x)
         real(r64), intent(in) :: x
-        hfx2 = (1/exp(1.0_r64) - cos(x))/(1.0_r64 + x**2)
+        hfx2 = (exp(-1.0_r64) - cos(x))/(1.0_r64 + x**2)
      end function hfx2
 end program test_misc
