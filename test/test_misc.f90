@@ -339,8 +339,8 @@ program test_misc
   
   ! Hilbert transform tests (H)
   ! fx1 -> function 1, fx2 -> function 2
-  ! - hfx1_even stores hilbert transform calculated for fx1, and for even number
-  ! - of points
+  ! hfx1_even stores hilbert transform calculated for fx1, and for even number
+  ! of points
   xmin = -30.0
   xmax = 30.0
   n_even = 4000
@@ -352,33 +352,33 @@ program test_misc
   ind_odd = [889, 1333, 1777, 2221, 2665]
 
   itest = itest + 1
-  test_array(itest) = testify("Hilbert transform: even function, even points")
+  test_array(itest) = testify("Hilbert transform: f(x) = 1/(1 + x^2), even points")
   allocate(x_even(n_even), hfx1_even(n_even))
   call linspace(x_even, xmin, xmax, n_even)
-  call Hilbert_transform(fx1_array(x_even), hfx1_even)
-  call test_array(itest)%assert(hfx1_even(ind_even), hfx1_array(x_even(ind_even)), &
+  call Hilbert_transform(fx1_el(x_even), hfx1_even)
+  call test_array(itest)%assert(hfx1_even(ind_even), hfx1_el(x_even(ind_even)), &
        tol = 2e-4_r64)
 
   itest = itest + 1
-  test_array(itest) = testify("Hilbert transform: odd function, even points")
+  test_array(itest) = testify("Hilbert transform: f(x) = sin(x)/(1 + x^2), even points")
   allocate(hfx2_even(n_even))
-  call Hilbert_transform(fx2_array(x_even), hfx2_even)
-  call test_array(itest)%assert(hfx2_even(ind_even), hfx2_array(x_even(ind_even)), &
+  call Hilbert_transform(fx2_el(x_even), hfx2_even)
+  call test_array(itest)%assert(hfx2_even(ind_even), hfx2_el(x_even(ind_even)), &
        tol = 1e-4_r64)
 
   itest = itest + 1
-  test_array(itest) = testify("Hilbert transform: even function, odd points")
+  test_array(itest) = testify("Hilbert transform: f(x) = 1/(1 + x^2), odd points")
   allocate(x_odd(n_odd), hfx1_odd(n_odd))
   call linspace(x_odd, xmin, xmax, n_odd)
-  call Hilbert_transform(fx1_array(x_odd), hfx1_odd)
-  call test_array(itest)%assert(hfx1_odd(ind_odd), hfx1_array(x_odd(ind_odd)), &
+  call Hilbert_transform(fx1_el(x_odd), hfx1_odd)
+  call test_array(itest)%assert(hfx1_odd(ind_odd), hfx1_el(x_odd(ind_odd)), &
        tol = 4e-4_r64)
 
   itest = itest + 1
-  test_array(itest) = testify("Hilbert transform: odd function, odd points")
+  test_array(itest) = testify("Hilbert transform: f(x) = sin(x)/(1 + x^2), odd points")
   allocate(hfx2_odd(n_odd))
-  call Hilbert_transform(fx2_array(x_odd), hfx2_odd)
-  call test_array(itest)%assert(hfx2_odd(ind_odd), hfx2_array(x_odd(ind_odd)), &
+  call Hilbert_transform(fx2_el(x_odd), hfx2_odd)
+  call test_array(itest)%assert(hfx2_odd(ind_odd), hfx2_el(x_odd(ind_odd)), &
        tol = 1e-5_r64)
 
   tests_all = testify(test_array)
@@ -389,35 +389,30 @@ program test_misc
   contains
      ! reference functions for the Hilbert transform test
      ! fx1 is an even function
-     function fx1_array(x) result(fx1)
-        real(r64), intent(in) :: x(:)
-        real(r64), allocatable :: fx1(:)
-        allocate(fx1(size(x)))
-        fx1 = 1/(1 + x**2)
-     end function fx1_array
+     elemental function fx1_el(x) result(fx1)
+        real(r64), intent(in) :: x
+        real(r64) :: fx1
+        fx1 = 1/(1.0_r64 + x**2)
+     end function fx1_el
 
      ! Hfx1 is actual hilbert transform of fx1, is an odd function
-     function hfx1_array(x) result(hfx1)
-        real(r64), intent(in) :: x(:)
-        real(r64), allocatable :: hfx1(:)
-        allocate(hfx1(size(x)))
-        hfx1 = x/(1 + x**2)
-     end function hfx1_array
+     elemental function hfx1_el(x) result(hfx1)
+        real(r64), intent(in) :: x
+        real(r64) :: hfx1
+        hfx1 = x/(1.0_r64 + x**2)
+     end function hfx1_el
 
      ! fx2 is an odd function
-     function fx2_array(x) result(fx2)
-        real(r64), intent(in) :: x(:)
-        real(r64), allocatable :: fx2(:)
-        allocate(fx2(size(x)))
-        fx2 = sin(x)/(1 + x**2)
-     end function fx2_array
+     elemental function fx2_el(x) result(fx2)
+        real(r64), intent(in) :: x
+        real(r64) :: fx2
+        fx2 = sin(x)/(1.0_r64 + x**2)
+     end function fx2_el
 
      ! Hfx2 is actual hilbert transform of fx2, is an even function
-     function hfx2_array(x) result(hfx2)
-        real(r64), intent(in) :: x(:)
-        real(r64), allocatable :: hfx2(:)
-        real(r64), parameter :: e = 2.718281
-        allocate(hfx2(size(x)))
-        hfx2 = (1/e - cos(x))/(1 + x**2)
-     end function hfx2_array
+     elemental function hfx2_el(x) result(hfx2)
+        real(r64), intent(in) :: x
+        real(r64) :: hfx2
+        hfx2 = (1/exp(1.0_r64) - cos(x))/(1.0_r64 + x**2)
+     end function hfx2_el
 end program test_misc
