@@ -28,7 +28,7 @@ while the following is not:
   end do
 #+END_SRC
 
-A good text editor allows selecting a region and pressing ~TAB~ or something similar to automatically apply proper indentation. If your editor does not do that, get a better editor. Set your ~TAB~ to 3 spaces.
+A good text editor allows selecting a region and pressing ~TAB~ or something similar to automatically apply proper indentation. If your editor does not do that, get a better editor. Set your ~TAB~ to 2 spaces for the indentation level under `program`, `module`, `subroutine`, and `function`, and to 3 spaces for `if` and `do`.
 
 ** Use space and comma properly
 Write code the way you would write an essay. Use spaces and linebreaks to improve readability and separate conceptually distinct sections of the calculation. Below are some examples.
