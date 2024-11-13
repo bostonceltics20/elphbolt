@@ -386,29 +386,29 @@ program test_misc
   
   if(tests_all%get_status() .eqv. .false.) error stop -1
 
-  contains
-     ! reference functions for the Hilbert transform test
-     ! fx1 is an even function
-     pure elemental real(r64) function fx1(x)
-        real(r64), intent(in) :: x
-        fx1 = 1/(1.0_r64 + x**2)
-     end function fx1
+contains
+  ! Some reference functions and their Hilbert transforms:
+  pure elemental real(r64) function fx1(x)
+    real(r64), intent(in) :: x
+    
+    fx1 = 1/(1.0_r64 + x**2)
+  end function fx1
 
-     ! Hfx1 is actual hilbert transform of fx1, is an odd function
-     pure elemental real(r64) function hfx1(x)
-        real(r64), intent(in) :: x
-        hfx1 = x/(1.0_r64 + x**2)
-     end function hfx1
+  pure elemental real(r64) function hfx1(x)
+    real(r64), intent(in) :: x
+    
+    hfx1 = x/(1.0_r64 + x**2)
+  end function hfx1
 
-     ! fx2 is an odd function
-     pure elemental real(r64) function fx2(x)
-        real(r64), intent(in) :: x
-        fx2 = sin(x)/(1.0_r64 + x**2)
-     end function fx2
+  pure elemental real(r64) function fx2(x)
+    real(r64), intent(in) :: x
+    
+    fx2 = sin(x)/(1.0_r64 + x**2)
+  end function fx2
 
-     ! Hfx2 is actual hilbert transform of fx2, is an even function
-     pure elemental real(r64) function hfx2(x)
-        real(r64), intent(in) :: x
-        hfx2 = (exp(-1.0_r64) - cos(x))/(1.0_r64 + x**2)
-     end function hfx2
+  pure elemental real(r64) function hfx2(x)
+    real(r64), intent(in) :: x
+    
+    hfx2 = (exp(-1.0_r64) - cos(x))/(1.0_r64 + x**2)
+  end function hfx2
 end program test_misc
