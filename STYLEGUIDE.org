@@ -33,6 +33,32 @@ A good text editor allows selecting a region and pressing ~TAB~ or something sim
 ** Use space and comma properly
 Write code the way you would write an essay. Use spaces and linebreaks to improve readability and separate conceptually distinct sections of the calculation. Below are some examples.
 
+The following is more readable
+#+BEGIN_SRC fortran
+  pure elemental real(r64) function Fermi(e, chempot, T)
+    !! e Energy in eV
+    !! chempot Chemical potential in eV
+    !! T temperature in K
+
+    real(r64), intent(in) :: e, chempot, T
+
+    Fermi = 1.0_r64/(exp((e - chempot)/kB/T) + 1.0_r64)
+  end function Fermi
+#+END_SRC
+
+compared to
+#+BEGIN_SRC fortran
+  pure elemental real(r64) function Fermi(e, chempot, T)
+    !! e Energy in eV
+    !! chempot Chemical potential in eV
+    !! T temperature in K
+    real(r64), intent(in) :: e, chempot, T
+    Fermi = 1.0_r64/(exp((e - chempot)/kB/T) + 1.0_r64)
+  end function Fermi
+#+END_SRC
+
+The former reads better because conceptually different sections of the code are separated by a line break.
+
 The following is an acceptable use of spaces around mathematical operations:
 #+BEGIN_SRC fortran
   fx = sin(x)/(1 + (2 - x**2))
