@@ -24,12 +24,12 @@
 	indlowconduction = 5 !Lowest conduction band
 	numbands = 8 !Total wannier bands
 	enref = 6.70035 !eV, Conduction band minimum
-	chempot = 6.70035 !eV, Conduction band minimum
+	chempot = 6.70035 !eV 
 /
 
 &numerics
-	qmesh = 10 10 10
-	mesh_ref = 3 !kmesh = 30 30 30
+	qmesh = 6 6 6
+	mesh_ref = 4 !kmesh = 24 24 24
 	fsthick = 0.4 !eV about enref
 	datadumpdir = './scratch/' !Or, enter suitable scratch directory
         conv_thres = 0.0001
